@@ -216,7 +216,8 @@ const Contact = () => {
                     style={{ border: 0 }}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    src="https://www.google.com/maps/embed/v1/place?key=YOUR_GOOGLE_MAPS_API_KEY&q=Jwagal+11+Lalitpur+Nepal"
+                    allowFullScreen
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d56516.2777684411!2d85.28493293612318!3d27.70903024192621!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb198a307baabf%3A0xb5137c1bf18db1ea!2sKathmandu%2044600!5e0!3m2!1sen!2snp!4v1754891820306!5m2!1sen!2snp"
                   />
                 </div>
                 <div className="absolute top-2 left-2 bg-white/90 dark:bg-gray-900/80 backdrop-blur px-3 py-1.5 rounded-md text-xs font-medium text-gray-700 dark:text-gray-200 shadow">Office Location</div>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Home, ArrowLeft, Search, Phone } from 'lucide-react';
+import { Home, Briefcase, Search, Phone, Camera } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Logo from '../components/Logo';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,7 +15,8 @@ const NotFound = () => {
   const quickLinks = [
     { name: 'Home', path: '/', icon: Home },
     { name: 'Products', path: '/products', icon: Search },
-    { name: 'About Us', path: '/about', icon: ArrowLeft },
+    { name: 'Gallery', path: '/gallery', icon: Camera },
+    { name: 'Career', path: '/career', icon: Briefcase },
     { name: 'Contact', path: '/contact', icon: Phone },
   ];
 
