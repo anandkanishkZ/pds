@@ -14,6 +14,20 @@
   }
   .font-poppins { font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif; }
   .font-roboto { font-family: 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Poppins', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif; }
+  
+  /* Hero Slider Mobile Optimizations */
+  .hero-slider-mobile-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+  }
+  
+  /* Mobile viewport fixes */
+  .mobile-full-height {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  }
 }
 
 @layer base {

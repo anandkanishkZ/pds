@@ -33,6 +33,14 @@ const Navbar = () => {
     { name: 'Contact', path: '/contact' },
   ];
 
+  // Handle navigation click - scroll to top if already on the same page
+  const handleNavClick = (item: { name: string; path: string }, event: React.MouseEvent) => {
+    if (location.pathname === item.path) {
+      event.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <nav
       className={`fixed w-full z-50 transition-all duration-500 ${
@@ -44,9 +52,16 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`flex justify-between items-center ${isScrolled ? 'h-16' : 'h-20'} transition-all duration-500`}>
-          <Link to="/" className="group flex items-center">
-            {/* Hide text + tagline per request */}
+          <Link 
+            to="/" 
+            className="group flex items-center space-x-3"
+            onClick={(e) => handleNavClick({ name: 'Home', path: '/' }, e)}
+          >
             <Logo size="md" variant="color" plainColor="#ffd347" showText={false} />
+            <div className="hidden md:flex flex-col">
+              <h1 className="text-white font-bold text-xl tracking-wide">Power Drive Solution</h1>
+              <p className="text-[#ffd347] text-sm font-medium tracking-wide">Your Drive, Our Support</p>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
@@ -56,6 +71,7 @@ const Navbar = () => {
                 <Link
                   key={item.name}
                   to={item.path}
+                  onClick={(e) => handleNavClick(item, e)}
                   className={`relative px-4 py-2 text-sm font-medium tracking-wide transition-all duration-300 rounded-lg group overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 ${
                     location.pathname === item.path
                       ? 'text-white'
@@ -95,13 +111,13 @@ const Navbar = () => {
             <button
               aria-label="Toggle navigation"
               onClick={() => setIsOpen(!isOpen)}
-              className="relative w-12 h-12 flex items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md ring-1 ring-white/10 hover:ring-white/30 overflow-hidden group transition-all duration-300"
+              className="relative w-12 h-12 flex items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md ring-1 ring-white/10 hover:ring-white/30 overflow-hidden group transition-all duration-300 hover:scale-105"
             >
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/0 via-white/10 to-white/0 transition-opacity" />
               <div className="space-y-1.5 relative z-10">
-                <span className={`block h-0.5 w-6 bg-white transition-all duration-300 ${isOpen ? 'translate-y-2 rotate-45' : ''}`}></span>
-                <span className={`block h-0.5 w-6 bg-white transition-all duration-300 ${isOpen ? 'opacity-0' : ''}`}></span>
-                <span className={`block h-0.5 w-6 bg-white transition-all duration-300 ${isOpen ? '-translate-y-2 -rotate-45' : ''}`}></span>
+                <span className={`block h-0.5 w-6 bg-white transition-all duration-500 ease-in-out ${isOpen ? 'translate-y-2 rotate-45' : ''}`}></span>
+                <span className={`block h-0.5 w-6 bg-white transition-all duration-500 ease-in-out ${isOpen ? 'opacity-0 scale-0' : 'opacity-100 scale-100'}`}></span>
+                <span className={`block h-0.5 w-6 bg-white transition-all duration-500 ease-in-out ${isOpen ? '-translate-y-2 -rotate-45' : ''}`}></span>
               </div>
             </button>
           </div>
@@ -128,12 +144,22 @@ const Navbar = () => {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
-            {navItems.map(item => (
+            {navItems.map((item, index) => (
               <Link
                 key={item.name}
                 to={item.path}
-                onClick={() => setIsOpen(false)}
-                className={`block px-4 py-3 rounded-xl font-medium text-base tracking-wide relative group overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 transition-all ${location.pathname === item.path ? 'text-white bg-white/10 shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                onClick={(e) => {
+                  handleNavClick(item, e);
+                  setIsOpen(false);
+                }}
+                className={`block px-4 py-3 rounded-xl font-medium text-base tracking-wide relative group overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 transition-all duration-300 transform ${
+                  isOpen 
+                    ? 'translate-x-0 opacity-100' 
+                    : 'translate-x-8 opacity-0'
+                } ${location.pathname === item.path ? 'text-white bg-white/10 shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                style={{
+                  transitionDelay: isOpen ? `${index * 100}ms` : '0ms'
+                }}
               >
                 <span className="relative z-10 flex items-center justify-between">
                   {item.name}
@@ -147,12 +173,26 @@ const Navbar = () => {
             <Link
               to="/contact"
               onClick={() => setIsOpen(false)}
-              className="w-full flex items-center justify-center gap-2 bg-[#fec216] text-[#06477f] py-3 rounded-xl font-semibold tracking-wide text-sm shadow-lg shadow-black/30 hover:bg-[#ffd347] hover:scale-[1.03] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70"
+              className={`w-full flex items-center justify-center gap-2 bg-[#fec216] text-[#06477f] py-3 rounded-xl font-semibold tracking-wide text-sm shadow-lg shadow-black/30 hover:bg-[#ffd347] hover:scale-[1.03] transition-all duration-300 transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 ${
+                isOpen 
+                  ? 'translate-y-0 opacity-100' 
+                  : 'translate-y-8 opacity-0'
+              }`}
+              style={{
+                transitionDelay: isOpen ? '400ms' : '0ms'
+              }}
             >
               <span>Get Quote</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <p className="mt-4 text-[10px] text-white/40 text-center">© 2025 PDS</p>
+            <p className={`mt-4 text-[10px] text-white/40 text-center transition-all duration-300 transform ${
+              isOpen 
+                ? 'translate-y-0 opacity-100' 
+                : 'translate-y-4 opacity-0'
+            }`}
+            style={{
+              transitionDelay: isOpen ? '500ms' : '0ms'
+            }}>© 2025 PDS</p>
           </div>
         </div>
       </div>

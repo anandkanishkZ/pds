@@ -121,7 +121,7 @@ const Contact = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
-            <div>
+            <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-2xl shadow-lg dark:shadow-2xl border border-gray-200 dark:border-gray-700">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Send Us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -132,7 +132,7 @@ const Contact = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200"
                   />
                   <input
                     type="email"
@@ -141,7 +141,7 @@ const Contact = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200"
                   />
                 </div>
                 
@@ -152,7 +152,7 @@ const Contact = () => {
                     placeholder="Company Name"
                     value={formData.company}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200"
                   />
                   <input
                     type="tel"
@@ -160,7 +160,7 @@ const Contact = () => {
                     placeholder="Phone Number"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200"
                   />
                 </div>
                 
@@ -168,14 +168,14 @@ const Contact = () => {
                   name="subject"
                   value={formData.subject}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200"
                 >
-                  <option value="">Select Subject</option>
-                  <option value="product-inquiry">Product Inquiry</option>
-                  <option value="technical-support">Technical Support</option>
-                  <option value="bulk-orders">Bulk Orders</option>
-                  <option value="partnership">Partnership Opportunities</option>
-                  <option value="general">General Information</option>
+                  <option value="" className="text-gray-500 dark:text-gray-400">Select Subject</option>
+                  <option value="product-inquiry" className="text-gray-900 dark:text-gray-100">Product Inquiry</option>
+                  <option value="technical-support" className="text-gray-900 dark:text-gray-100">Technical Support</option>
+                  <option value="bulk-orders" className="text-gray-900 dark:text-gray-100">Bulk Orders</option>
+                  <option value="partnership" className="text-gray-900 dark:text-gray-100">Partnership Opportunities</option>
+                  <option value="general" className="text-gray-900 dark:text-gray-100">General Information</option>
                 </select>
                 
                 <textarea
@@ -185,15 +185,19 @@ const Contact = () => {
                   onChange={handleInputChange}
                   required
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 resize-vertical"
                 ></textarea>
                 {status && (
-                  <div className={`text-sm font-medium px-4 py-3 rounded-lg border ${status.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>{status.msg}</div>
+                  <div className={`text-sm font-medium px-4 py-3 rounded-lg border transition-colors ${
+                    status.type === 'success' 
+                      ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300' 
+                      : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300'
+                  }`}>{status.msg}</div>
                 )}
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed text-white py-4 rounded-lg hover:bg-brand-700 transition-all duration-200 hover:scale-105 shadow-lg font-semibold flex items-center justify-center"
+                  className="w-full bg-brand-600 hover:bg-brand-700 dark:bg-brand-700 dark:hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed text-white py-4 rounded-lg transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl dark:shadow-brand-900/50 font-semibold flex items-center justify-center"
                 >
                   <Send className={`h-5 w-5 mr-2 ${submitting ? 'animate-pulse' : ''}`} />
                   {submitting ? 'Sending...' : 'Send Message'}
@@ -202,7 +206,7 @@ const Contact = () => {
             </div>
 
             {/* Map & Location Info */}
-            <div>
+            <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-2xl shadow-lg dark:shadow-2xl border border-gray-200 dark:border-gray-700">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Visit Us</h2>
               <div className="relative rounded-2xl overflow-hidden shadow-lg mb-8 ring-1 ring-gray-200 dark:ring-gray-700">
                 <div className="aspect-[16/9] w-full">
@@ -240,7 +244,7 @@ const Contact = () => {
                 </a>
               </div>
               
-              <div className="bg-gray-50 dark:bg-gray-800 p-8 rounded-2xl">
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Why Visit Us?</h3>
                 <ul className="space-y-3">
                   {[

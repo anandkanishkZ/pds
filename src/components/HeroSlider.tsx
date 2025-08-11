@@ -61,7 +61,7 @@ const HeroSlider = () => {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden">
+    <div className="relative w-full mobile-full-height min-h-[600px] overflow-hidden bg-gray-900">
       {/* Background Images */}
       {slides.map((slide, index) => (
         <div
@@ -76,10 +76,28 @@ const HeroSlider = () => {
               : 'opacity-0 scale-110'
           }`}
         >
+          {/* Desktop Image */}
           <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${slide.image})` }}
+            className="absolute inset-0 hidden md:block bg-cover bg-center bg-no-repeat"
+            style={{ 
+              backgroundImage: `url(${slide.image})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center center'
+            }}
           />
+          
+          {/* Mobile Image - Optimized approach */}
+          <div className="absolute inset-0 md:hidden">
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="hero-slider-mobile-img"
+              loading={index === currentSlide ? 'eager' : 'lazy'}
+            />
+          </div>
+          
+          {/* Enhanced gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40 md:bg-gradient-to-r md:from-black/40 md:via-transparent md:to-transparent" />
         </div>
       ))}
 
@@ -91,25 +109,25 @@ const HeroSlider = () => {
       {/* Navigation Arrows */}
       <button
         onClick={goToPrevious}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white p-3 rounded-full transition-all duration-300 hover:scale-110 group"
+        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white p-2 md:p-3 rounded-full transition-all duration-300 hover:scale-110 group"
       >
-        <ChevronLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform duration-300" />
+        <ChevronLeft className="h-4 w-4 md:h-6 md:w-6 group-hover:-translate-x-1 transition-transform duration-300" />
       </button>
 
       <button
         onClick={goToNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white p-3 rounded-full transition-all duration-300 hover:scale-110 group"
+        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white p-2 md:p-3 rounded-full transition-all duration-300 hover:scale-110 group"
       >
-        <ChevronRight className="h-6 w-6 group-hover:translate-x-1 transition-transform duration-300" />
+        <ChevronRight className="h-4 w-4 md:h-6 md:w-6 group-hover:translate-x-1 transition-transform duration-300" />
       </button>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex space-x-3">
+      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 z-20 flex space-x-2 md:space-x-3">
         {slides.map((_, index) => (
           <button
             key={index}
             onClick={() => goToSlide(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
               index === currentSlide
                 ? 'bg-brand-500 scale-125 shadow-lg shadow-brand-500/50'
                 : 'bg-white/50 hover:bg-white/70 hover:scale-110'
@@ -129,8 +147,8 @@ const HeroSlider = () => {
       </div>
 
       {/* Slide Counter */}
-      <div className="absolute top-8 right-8 z-20 bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-full">
-        <span className="text-sm font-medium">
+      <div className="absolute top-4 md:top-8 right-4 md:right-8 z-20 bg-white/10 backdrop-blur-sm text-white px-2 py-1 md:px-4 md:py-2 rounded-full">
+        <span className="text-xs md:text-sm font-medium">
           {String(currentSlide + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
         </span>
       </div>
