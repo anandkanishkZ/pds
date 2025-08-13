@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Shield, Zap, Leaf, Award, CheckCircle, ChevronRight, Truck, Factory, Ship, Tractor, Building2, Car } from 'lucide-react';
+import { Shield, Zap, Leaf, Award, ChevronRight, Target, Rocket, Sparkles } from 'lucide-react';
 import HeroSlider from '../components/HeroSlider';
 // Local category images
 const imgGTO = '/images/category/gto.jpg';
@@ -41,47 +41,67 @@ const Home = () => {
       {/* Hero Section with Slider */}
       <HeroSlider />
 
-      {/* Company Introduction */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                Leading the Industry in Quality Lubricants
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed mb-6">
-                Power Drive Solution has been at the forefront of automotive lubrication technology for over two decades. 
-                Our commitment to innovation and quality has made us a trusted partner for automotive professionals worldwide.
-              </p>
-              <div className="space-y-4">
-                {[
-                  'ISO 9001:2015 Certified Manufacturing',
-                  'Advanced R&D Laboratory',
-                  '20+ Years of Industry Experience',
-                  'Global Distribution Network'
-                ].map((item, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-brand-600" />
-                    <span className="text-gray-700 dark:text-gray-300">{item}</span>
+      {/* Vision & Mission */}
+      <section className="relative py-24 bg-white dark:bg-gray-950 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 opacity-60 dark:opacity-70">
+          <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-br from-[#ffd347]/30 to-[#06477f]/20 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-[#06477f]/25 to-[#ffd347]/20 blur-3xl" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center gap-2 mb-10 text-[#06477f] dark:text-[#ffd347]">
+            <Sparkles className="h-5 w-5" />
+            <span className="text-sm font-semibold tracking-wider uppercase">Built on Purpose</span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Our Vision */}
+            <div className="group relative p-8 md:p-10 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all">
+              <div className="absolute -z-0 inset-0 rounded-2xl ring-1 ring-transparent group-hover:ring-[#06477f]/10" />
+              <div className="relative z-10 flex items-start gap-5">
+                <div className="shrink-0">
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#06477f] to-[#0a5aa0] text-white flex items-center justify-center shadow-md">
+                    <Target className="h-7 w-7" />
                   </div>
+                </div>
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Our Vision</h3>
+                  <p className="mt-4 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
+                    To be the most trusted partner in powering mobility and industrial progress—delivering smart, reliable, and efficient solutions for every drive and direction.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8 flex flex-wrap gap-2">
+                {['Trust', 'Reliability', 'Efficiency', 'Smart Solutions'].map((tag) => (
+                  <span key={tag} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{tag}</span>
                 ))}
               </div>
-              <Link
-                to="/about"
-                className="inline-flex items-center mt-8 text-brand-600 font-semibold hover:text-brand-700 transition-colors duration-200"
-              >
-                Learn More About Us
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
             </div>
-            <div className="relative">
-              <img
-                src="https://images.pexels.com/photos/162553/keys-workshop-mechanic-tools-162553.jpeg?auto=compress&cs=tinysrgb&w=800"
-                alt="Manufacturing facility"
-                className="rounded-2xl shadow-2xl hover:scale-105 transition-transform duration-300"
-              />
+
+            {/* Our Mission */}
+            <div className="group relative p-8 md:p-10 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all">
+              <div className="absolute -z-0 inset-0 rounded-2xl ring-1 ring-transparent group-hover:ring-[#ffd347]/10" />
+              <div className="relative z-10 flex items-start gap-5">
+                <div className="shrink-0">
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#ffd347] to-[#e2b928] text-gray-900 flex items-center justify-center shadow-md">
+                    <Rocket className="h-7 w-7" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Our Mission</h3>
+                  <p className="mt-4 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
+                    We provide high-quality trading and supply chain solutions for the automotive and industrial sectors, driven by reliability, innovation, and a strong commitment to customer success.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8 flex flex-wrap gap-2">
+                {['Customer Success', 'Innovation', 'Quality', 'Supply Excellence'].map((tag) => (
+                  <span key={tag} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{tag}</span>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Subtle accent border */}
+          <div className="mt-10 h-px w-full bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-800 to-transparent" />
         </div>
       </section>
 
@@ -237,127 +257,28 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Industries We Serve (replaces former Product Range section) */}
-      <section className="py-24 bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(circle_at_center,black,transparent_75%)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_35%,rgba(6,71,127,0.08),transparent_65%)] dark:bg-[radial-gradient(circle_at_70%_65%,rgba(255,211,71,0.07),transparent_65%)]" />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-5">
-              Industries We Serve
-            </h2>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Tailored lubrication solutions engineered for demanding operating environments across transportation, industrial and specialty segments.
+      {/* Call-To-Action */}
+      <section className="relative py-24 text-white overflow-hidden bg-brand-600 dark:bg-brand-700">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm">Ready to power your performance?</h2>
+            <p className="mt-4 text-lg md:text-xl text-white/90 leading-relaxed">
+              Talk to our experts about the right solution for your fleet, plant, or performance needs.
             </p>
           </div>
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {/* Transportation / Fleet */}
-            <div className="group relative p-8 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[#06477f]/10 dark:bg-[#06477f]/30 flex items-center justify-center text-[#06477f] dark:text-[#ffd347]">
-                  <Truck className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Fleet & Transportation</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Extended drain, emission system compatible oils reducing total operating cost.</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Extended Drain', 'DPF Safe', 'Fuel Economy'].map(t => (
-                  <span key={t} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{t}</span>
-                ))}
-              </div>
-            </div>
-            {/* Construction & Heavy Equipment */}
-            <div className="group relative p-8 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[#06477f]/10 dark:bg-[#06477f]/30 flex items-center justify-center text-[#06477f] dark:text-[#ffd347]">
-                  <Building2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Construction & Heavy Duty</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">High load & thermal stability formulations for severe service cycles.</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Shear Stable', 'Anti-Wear', 'Clean Engines'].map(t => (
-                  <span key={t} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{t}</span>
-                ))}
-              </div>
-            </div>
-            {/* Agriculture */}
-            <div className="group relative p-8 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[#06477f]/10 dark:bg-[#06477f]/30 flex items-center justify-center text-[#06477f] dark:text-[#ffd347]">
-                  <Tractor className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Agriculture & Off-Road</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Multi-purpose protection for variable load, dusty & high-hour operations.</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Dust Shield', 'High Uptime', 'Oxidation Control'].map(t => (
-                  <span key={t} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{t}</span>
-                ))}
-              </div>
-            </div>
-            {/* Manufacturing / Industrial */}
-            <div className="group relative p-8 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[#06477f]/10 dark:bg-[#06477f]/30 flex items-center justify-center text-[#06477f] dark:text-[#ffd347]">
-                  <Factory className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Manufacturing & Industrial</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Reliability-focused lubrication for continuous duty & critical assets.</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Extended Life', 'Deposit Control', 'Energy Efficient'].map(t => (
-                  <span key={t} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{t}</span>
-                ))}
-              </div>
-            </div>
-            {/* Marine & Power */}
-            <div className="group relative p-8 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[#06477f]/10 dark:bg-[#06477f]/30 flex items-center justify-center text-[#06477f] dark:text-[#ffd347]">
-                  <Ship className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Marine & Power Generation</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Formulated for corrosion resistance & sustained thermal stability.</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Corrosion Guard', 'Thermal Stable', 'Load Resilience'].map(t => (
-                  <span key={t} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{t}</span>
-                ))}
-              </div>
-            </div>
-            {/* Passenger & Performance */}
-            <div className="group relative p-8 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[#06477f]/10 dark:bg-[#06477f]/30 flex items-center justify-center text-[#06477f] dark:text-[#ffd347]">
-                  <Car className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">Passenger & Performance</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Low-friction chemistry supporting fuel economy & engine cleanliness.</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {['Low Friction', 'Clean Engines', 'Emission Ready'].map(t => (
-                  <span key={t} className="px-3 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[11px] font-medium tracking-wide text-gray-600 dark:text-gray-300">{t}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="mt-16 flex justify-center">
-            <Link to="/contact" className="group relative inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#06477f] text-white font-semibold shadow hover:shadow-lg hover:bg-[#053d6e] transition">
-              Discuss Your Application
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              to="/contact"
+              className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white text-[#06477f] font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+            >
+              Get Quote
+              <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition" />
+            </Link>
+            <Link
+              to="/products"
+              className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl border-2 border-white text-white font-semibold hover:bg-white/10 hover:backdrop-blur transition-all duration-300"
+            >
+              View Products
               <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition" />
             </Link>
           </div>

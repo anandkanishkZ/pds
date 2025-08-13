@@ -147,18 +147,17 @@ const Gallery = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#06477f]/10 to-[#fec216]/10"></div>
+      <section className="relative pt-32 md:pt-36 pb-16 overflow-hidden bg-[#06477f]">
         <div className="container mx-auto px-4 relative z-10">
           <div className={`text-center transition-all duration-1000 ${isAnimated ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-8'}`}>
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-800 dark:text-white mb-6">
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
               Our Gallery
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed">
+            <p className="text-xl text-white/80 max-w-3xl mx-auto mb-8 leading-relaxed">
               Explore our world-class facilities, premium products, and memorable moments. 
               Witness the excellence that drives Power Drive Solution forward.
             </p>
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center gap-2 text-sm text-white/70">
               <Eye className="h-4 w-4" />
               <span>{galleryItems.length} Images</span>
               <span className="mx-2">•</span>
@@ -266,7 +265,7 @@ const Gallery = () => {
                 </div>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                    <span className={`${'text-xs font-medium px-2 py-1 rounded-full'} ${
                       item.category === 'facility' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
                       item.category === 'products' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                       'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'

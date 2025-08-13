@@ -7,6 +7,7 @@ import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
 import DieselProductDetail from './pages/DieselProductDetail';
 import Contact from './pages/Contact';
+import DealershipInquiry from './pages/DealershipInquiry';
 import DieselEngineOil from './pages/DieselEngineOil';
 import NotFound from './pages/NotFound';
 import Career from './pages/Career';
@@ -43,6 +44,7 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/career" element={<Career />} />
+            <Route path="/dealership-inquiry" element={<DealershipInquiry />} />
             <Route path="/contact" element={<Contact />} />
             {/* 404 Error Page - Must be last */}
             <Route path="*" element={<NotFound />} />

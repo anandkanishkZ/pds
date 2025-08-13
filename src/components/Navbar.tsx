@@ -99,10 +99,10 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-3">
             <ThemeToggle />
             <Link
-              to="/contact"
+              to="/dealership-inquiry"
               className="bg-[#fec216] text-[#06477f] px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 hover:bg-[#ffd347] hover:scale-[1.04] shadow-lg shadow-black/30 hover:shadow-xl flex items-center space-x-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70"
             >
-              <span>Get Quote</span>
+              <span>Dealership Inquiry</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -173,7 +173,7 @@ const Navbar = () => {
           </div>
           <div className="px-5 pb-8">
             <Link
-              to="/contact"
+              to="/dealership-inquiry"
               onClick={() => setIsOpen(false)}
               className={`w-full flex items-center justify-center gap-2 bg-[#fec216] text-[#06477f] py-3 rounded-xl font-semibold tracking-wide text-sm shadow-lg shadow-black/30 hover:bg-[#ffd347] hover:scale-[1.03] transition-all duration-300 transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 ${
                 isOpen 
@@ -184,7 +184,7 @@ const Navbar = () => {
                 transitionDelay: isOpen ? '400ms' : '0ms'
               }}
             >
-              <span>Get Quote</span>
+              <span>Dealership Inquiry</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
             <p className={`mt-4 text-[10px] text-white/40 text-center transition-all duration-300 transform ${
