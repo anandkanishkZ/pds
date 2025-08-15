@@ -12,6 +12,10 @@ import DieselEngineOil from './pages/DieselEngineOil';
 import NotFound from './pages/NotFound';
 import Career from './pages/Career';
 import Gallery from './pages/Gallery';
+import Login from './pages/Login';
+import AdminLayout from './layouts/AdminLayout';
+import AdminDashboard from './pages/admin/Dashboard';
+import Users from './pages/admin/Users';
 
 import { useEffect } from 'react';
 
@@ -30,27 +34,47 @@ const ScrollToTop = () => {
 
 function App() {
   return (
-  <Router>
+    <Router>
       <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
-        <Navbar />
-    <ScrollToTop />
-        <main>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/products/diesel-engine-oil" element={<DieselEngineOil />} />
-            <Route path="/products/diesel-engine-oil/:dieselId" element={<DieselProductDetail />} />
-            <Route path="/products/:id" element={<ProductDetail />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/career" element={<Career />} />
-            <Route path="/dealership-inquiry" element={<DealershipInquiry />} />
-            <Route path="/contact" element={<Contact />} />
-            {/* 404 Error Page - Must be last */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-        <Footer />
+        {/* Hide public Navbar/Footer on /admin routes by checking location in route structure */}
+        <ScrollToTop />
+        <Routes>
+          {/* Admin routes (no public header/footer) */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<Users />} />
+            {/* Future nested routes: products, inquiries, settings */}
+          </Route>
+
+          {/* Public routes with Navbar/Footer */}
+          <Route
+            path="/*"
+            element={
+              <>
+                <Navbar />
+                <main>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/products" element={<Products />} />
+                    <Route path="/products/diesel-engine-oil" element={<DieselEngineOil />} />
+                    <Route path="/products/diesel-engine-oil/:dieselId" element={<DieselProductDetail />} />
+                    <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/gallery" element={<Gallery />} />
+                    <Route path="/career" element={<Career />} />
+                    <Route path="/dealership-inquiry" element={<DealershipInquiry />} />
+                    <Route path="/contact" element={<Contact />} />
+                    {/* Auth */}
+                    <Route path="/login" element={<Login />} />
+                    {/* 404 */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </>
+            }
+          />
+        </Routes>
       </div>
     </Router>
   );

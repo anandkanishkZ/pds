@@ -26,13 +26,15 @@ const Navbar = () => {
     }
   }, [isOpen]);
 
+  // no admin/auth controls in public navbar
+
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'About Us', path: '/about' },
     { name: 'Products', path: '/products' },
     { name: 'Gallery', path: '/gallery' },
     { name: 'Career', path: '/career' },
-    { name: 'Contact', path: '/contact' },
+  { name: 'Contact', path: '/contact' },
   ];
 
   // Handle navigation click - scroll to top if already on the same page
@@ -42,6 +44,8 @@ const Navbar = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // ...
 
   return (
     <nav
@@ -105,6 +109,7 @@ const Navbar = () => {
               <span>Dealership Inquiry</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
+            {/* Admin controls removed from public navbar */}
           </div>
 
           {/* Mobile menu button */}
@@ -170,6 +175,7 @@ const Navbar = () => {
                 <span className={`absolute inset-0 rounded-xl opacity-0 group-hover:opacity-20 bg-white/5 transition`}></span>
               </Link>
             ))}
+            {/* Admin link removed from mobile menu */}
           </div>
           <div className="px-5 pb-8">
             <Link
@@ -187,6 +193,7 @@ const Navbar = () => {
               <span>Dealership Inquiry</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
+            {/* Logout removed from mobile menu */}
             <p className={`mt-4 text-[10px] text-white/40 text-center transition-all duration-300 transform ${
               isOpen 
                 ? 'translate-y-0 opacity-100' 

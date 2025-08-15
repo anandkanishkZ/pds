@@ -71,6 +71,8 @@ npm run preview
 ```
 The dev server will output both `Local:` and `Network:` URLs. Use the network URL to test on other devices connected to the same LAN.
 
+Backend integration: set `VITE_API_BASE_URL` in a `.env` file at the project root if your backend is not on `http://localhost:4000`.
+
 ---
 ## 🧩 Theming & Design System
 | Aspect | Implementation |
