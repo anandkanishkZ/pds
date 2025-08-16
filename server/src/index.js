@@ -8,6 +8,7 @@ import { sequelize } from './models/index.js';
 import { ensureDatabaseExists, seedAdminUser } from './utils/initDb.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
+import settingsRoutes from './routes/settings.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/settings', settingsRoutes);
 
 const PORT = config.server.port;
 

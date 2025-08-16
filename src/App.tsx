@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -16,6 +18,7 @@ import Login from './pages/Login';
 import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
 import Users from './pages/admin/Users';
+import Settings from './pages/admin/Settings';
 
 import { useEffect } from 'react';
 
@@ -43,7 +46,8 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Users />} />
-            {/* Future nested routes: products, inquiries, settings */}
+            <Route path="settings" element={<Settings />} />
+            {/* Future nested routes: products, inquiries */}
           </Route>
 
           {/* Public routes with Navbar/Footer */}
@@ -75,6 +79,20 @@ function App() {
             }
           />
         </Routes>
+
+        {/* Global Toast Container */}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
       </div>
     </Router>
   );

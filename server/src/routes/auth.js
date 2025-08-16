@@ -54,8 +54,11 @@ router.post(
       const user = await User.findOne({ where: { email } });
       if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-  const match = await bcrypt.compare(password, user.passwordHash);
+      const match = await bcrypt.compare(password, user.passwordHash);
       if (!match) return res.status(401).json({ message: 'Invalid credentials' });
+
+      // Update last login time
+      await user.update({ lastLoginAt: new Date() });
 
       const token = jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
       return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
