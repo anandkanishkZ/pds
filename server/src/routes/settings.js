@@ -1,4 +1,7 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import { User } from '../models/index.js';
@@ -6,6 +9,28 @@ import { authMiddleware } from './auth.js';
 import config from '../config.js';
 
 const router = express.Router();
+
+// Multer storage for avatars
+const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${req.user?.sub || 'user'}-${Date.now()}${ext}`);
+  }
+});
+const fileFilter = (_req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+  if (allowed.includes(file.mimetype)) cb(null, true); else cb(new Error('Invalid file type'));
+};
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter
+});
 
 // Get user profile and settings
 router.get('/profile', authMiddleware, async (req, res) => {
@@ -18,6 +43,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const avatarUrl = user.avatar ? `/uploads/avatars/${user.avatar}` : null;
     res.json({
       profile: {
         id: user.id,
@@ -25,7 +51,8 @@ router.get('/profile', authMiddleware, async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        avatar: user.avatar,
+        avatar: avatarUrl,
+        avatarFilename: user.avatar || null,
         department: user.department,
         location: user.location,
         bio: user.bio,
@@ -92,6 +119,7 @@ router.put('/profile', [
       ...(language !== undefined && { language })
     });
 
+    const avatarUrl = user.avatar ? `/uploads/avatars/${user.avatar}` : null;
     res.json({ 
       message: 'Profile updated successfully',
       profile: {
@@ -100,7 +128,8 @@ router.put('/profile', [
         email: user.email,
         phone: user.phone,
         role: user.role,
-        avatar: user.avatar,
+        avatar: avatarUrl,
+        avatarFilename: user.avatar || null,
         department: user.department,
         location: user.location,
         bio: user.bio,
@@ -135,15 +164,30 @@ router.put('/avatar', [
       return res.status(404).json({ message: 'User not found' });
     }
 
-    await user.update({ avatar });
-
-    res.json({ 
-      message: 'Avatar updated successfully',
-      avatar: user.avatar
-    });
+  // If a data URL was sent, we keep it for backward compatibility (not recommended).
+  // Better to use the multipart upload endpoint.
+  await user.update({ avatar });
+  const avatarFilename = user.avatar;
+  const avatarUrl = avatarFilename && !avatar.startsWith('data:') ? `/uploads/avatars/${avatarFilename}` : avatar;
+  res.json({ message: 'Avatar updated successfully', avatar: avatarUrl, avatarFilename });
   } catch (error) {
     console.error('Update avatar error:', error);
     res.status(500).json({ message: 'Failed to update avatar' });
+  }
+});
+
+// Upload avatar via multipart/form-data
+router.post('/avatar/upload', authMiddleware, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const user = await User.findByPk(req.user.sub);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+  const filename = path.basename(req.file.path);
+  await user.update({ avatar: filename });
+  res.json({ message: 'Avatar uploaded successfully', avatar: `/uploads/avatars/${filename}`, avatarFilename: filename });
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ message: 'Failed to upload avatar' });
   }
 });
 

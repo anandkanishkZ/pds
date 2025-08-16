@@ -22,7 +22,7 @@ import {
 import ThemeToggle from "../components/ThemeToggle";
 import AdminSidebar from "../components/admin/AdminSidebar";
 import ConfirmModal from "../components/ConfirmModal";
-import { auth } from "../lib/api";
+import { auth, getProfile, type UserProfile } from "../lib/api";
 import Logo from "../components/Logo";
 
 // Removed shadcn/ui dropdown; implementing a simple headless dropdown below
@@ -35,11 +35,25 @@ export default function AdminLayout() {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // --- Auth guard ---
   useEffect(() => {
     const token = auth.getToken?.();
     if (!token) navigate("/login");
+    else {
+      (async () => {
+        try {
+          const data = await getProfile(token);
+          setProfile(data.profile);
+        } catch (e) {
+          console.error('Failed to load profile', e);
+        } finally {
+          setProfileLoading(false);
+        }
+      })();
+    }
   }, [navigate]);
 
   // --- Lock scroll when mobile drawer open ---
@@ -86,6 +100,18 @@ export default function AdminLayout() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [userMenuOpen]);
+
+  // Listen for avatar updates dispatched from Settings page
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.avatar) {
+        setProfile(p => p ? { ...p, avatar: detail.avatar } : p);
+      }
+    };
+    window.addEventListener('pds-avatar-updated', handler as EventListener);
+    return () => window.removeEventListener('pds-avatar-updated', handler as EventListener);
+  }, []);
 
   const logout = () => {
     auth.clear?.();
@@ -169,14 +195,22 @@ export default function AdminLayout() {
                 aria-expanded={userMenuOpen}
               >
                 <div className="relative">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-sm font-bold text-slate-900 shadow-sm">
-                    A
-                  </span>
+                  {profile?.avatar ? (
+                    <img
+                      src={profile.avatar}
+                      alt={profile.name || 'User'}
+                      className="h-7 w-7 rounded-full object-cover ring-2 ring-white/30"
+                    />
+                  ) : (
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-sm font-bold text-slate-900 shadow-sm">
+                      {profile?.name?.charAt(0) || 'A'}
+                    </span>
+                  )}
                   <span className="absolute -bottom-0.5 -right-0.5 inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" />
                 </div>
                 <div className="hidden sm:block text-left">
-                  <div className="text-sm font-semibold">Admin</div>
-                  <div className="text-xs text-white/60">Administrator</div>
+                  <div className="text-sm font-semibold truncate max-w-[120px]">{profile?.name || (profileLoading ? 'Loading…' : 'User')}</div>
+                  <div className="text-xs text-white/60 truncate max-w-[120px]">{profile?.role === 'admin' ? 'Administrator' : profile?.role || ''}</div>
                 </div>
                 <ChevronDown className={`h-4 w-4 opacity-60 transition-all duration-200 group-hover:opacity-100 ${userMenuOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -192,20 +226,28 @@ export default function AdminLayout() {
                   <div className="px-3 py-3 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-slate-800/50 dark:to-slate-700/50 rounded-xl mb-2">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-lg font-bold text-slate-900 shadow-lg">
-                          A
-                        </span>
+                        {profile?.avatar ? (
+                          <img
+                            src={profile.avatar}
+                            alt={profile.name || 'User'}
+                            className="h-10 w-10 rounded-full object-cover ring-2 ring-white/60 dark:ring-slate-800"
+                          />
+                        ) : (
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-lg font-bold text-slate-900 shadow-lg">
+                            {profile?.name?.charAt(0) || 'A'}
+                          </span>
+                        )}
                         <span className="absolute -bottom-1 -right-1 inline-flex h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white dark:ring-slate-900" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-900 dark:text-white">Admin User</span>
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white">{profile?.name || 'User'}</span>
                           <Crown className="h-3.5 w-3.5 text-amber-500" />
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">admin@powerdrive.com</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{profile?.email || ''}</div>
                         <div className="flex items-center gap-1 mt-1">
                           <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Administrator</span>
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{profile?.role === 'admin' ? 'Administrator' : profile?.role || ''}</span>
                         </div>
                       </div>
                     </div>

@@ -30,6 +30,7 @@ import {
   getActivity, 
   exportUserData, 
   deleteAccount,
+  uploadAvatar,
   type UserProfile,
   type NotificationSettings,
   type SecuritySettings,
@@ -76,6 +77,8 @@ export default function AdminSettings() {
     newPassword: '',
     confirmPassword: ''
   });
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // System settings (local only for demo)
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
@@ -408,9 +411,9 @@ export default function AdminSettings() {
         {/* Avatar Section */}
         <div className="flex items-center space-x-4 mb-6">
           <div className="relative">
-            {profileForm.avatar ? (
+      {profileForm.avatar ? (
               <img
-                src={profileForm.avatar}
+        src={profileForm.avatar.startsWith('/') ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000').replace(/\/$/, '') + profileForm.avatar : profileForm.avatar}
                 alt="Profile"
                 className="h-20 w-20 rounded-full object-cover ring-4 ring-white dark:ring-slate-800"
               />
@@ -419,13 +422,49 @@ export default function AdminSettings() {
                 {profileForm.name?.charAt(0) || 'A'}
               </div>
             )}
-            <button className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-brand-600 text-white hover:bg-brand-700 transition-colors flex items-center justify-center shadow-lg">
-              <Camera className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-brand-600 text-white hover:bg-brand-700 transition-colors flex items-center justify-center shadow-lg disabled:opacity-50"
+            >
+              <Camera className={`h-4 w-4 ${avatarUploading ? 'animate-pulse' : ''}`} />
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) {
+                  toast.error('Image must be 2MB or smaller');
+                  return;
+                }
+                try {
+                  setAvatarUploading(true);
+                  const token = auth.getToken();
+                  if (!token) throw new Error('Not authenticated');
+                  const { avatar } = await uploadAvatar(token, file);
+                  setProfileForm({ ...profileForm, avatar });
+                  setUserProfile(prev => prev ? { ...prev, avatar } : prev);
+                  // Notify other UI (e.g., AdminLayout) about avatar update
+                  window.dispatchEvent(new CustomEvent('pds-avatar-updated', { detail: { avatar } }));
+                  toast.success('Avatar updated');
+                } catch (err) {
+                  console.error(err);
+                  toast.error(err instanceof Error ? err.message : 'Upload failed');
+                } finally {
+                  setAvatarUploading(false);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }
+              }}
+            />
           </div>
           <div>
             <h4 className="text-sm font-medium text-slate-900 dark:text-white">Profile Photo</h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Update your profile picture</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Update your profile picture (PNG, JPG, WEBP &lt; 2MB)</p>
           </div>
         </div>
 

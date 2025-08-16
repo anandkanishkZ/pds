@@ -3,12 +3,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import config from './config.js';
 import { sequelize } from './models/index.js';
 import { ensureDatabaseExists, seedAdminUser } from './utils/initDb.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
 import settingsRoutes from './routes/settings.js';
+import usersRoutes from './routes/users.js';
 
 dotenv.config();
 
@@ -36,12 +38,19 @@ const authLimiter = rateLimit({
 });
 
 app.use(express.json());
+// Static uploads (avatars)
+// Serve uploads with permissive CORP so frontend (different origin) can load images
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(process.cwd(), 'uploads')));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/users', usersRoutes);
 
 const PORT = config.server.port;
 

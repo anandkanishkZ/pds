@@ -29,6 +29,12 @@ export default (sequelize) => {
         allowNull: false,
         defaultValue: 'user'
       },
+      status: {
+        // Include 'blocked' logically (enum extended via migration)
+        type: DataTypes.ENUM('active', 'inactive', 'pending', 'blocked'),
+        allowNull: false,
+        defaultValue: 'active'
+      },
       isActive: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -56,6 +62,15 @@ export default (sequelize) => {
         allowNull: true
       },
       lastLoginAt: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
+      // Administrative metadata
+      adminNotes: {
+        type: DataTypes.TEXT,
+        allowNull: true
+      },
+      blockedAt: {
         type: DataTypes.DATE,
         allowNull: true
       },

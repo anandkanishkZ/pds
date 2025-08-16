@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Package, Mail, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Mail, Settings, LogOut, TrendingUp } from 'lucide-react';
 
 export type AdminNavItem = {
   to: string;
@@ -44,6 +44,19 @@ export default function AdminSidebar({ nav = defaultNav, onLogout }: { nav?: Adm
           ))}
         </nav>
         <div className="px-3 py-4 mt-auto">
+          {/* Visit public site link */}
+          <NavLink
+            to="/"
+            end
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-3 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-white shadow-sm ring-1 ring-offset-1 ring-offset-white dark:ring-offset-slate-900 focus-visible:outline-none focus-visible:ring-2 transition bg-green-600 hover:bg-green-700 active:bg-green-800 dark:bg-green-600 dark:hover:bg-green-500"
+          >
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/15">
+              <TrendingUp className="h-3.5 w-3.5" />
+            </span>
+            <span>Visit Site</span>
+          </NavLink>
           <button
             onClick={() => onLogout?.()}
             className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-white shadow-sm ring-1 ring-offset-1 ring-offset-white dark:ring-offset-slate-900 focus-visible:outline-none focus-visible:ring-2 transition"

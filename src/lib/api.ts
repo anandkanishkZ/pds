@@ -13,6 +13,7 @@ export type UserProfile = {
   phone?: string;
   role: string;
   avatar?: string;
+  avatarFilename?: string | null;
   department?: string;
   location?: string;
   bio?: string;
@@ -49,6 +50,98 @@ export type Activity = {
   ip: string;
   device: string;
 };
+
+// User management types
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: 'admin' | 'user' | 'moderator';
+  status: 'active' | 'inactive' | 'pending' | 'blocked';
+  createdAt: string;
+  lastLogin?: string;
+  avatar?: string | null;
+  adminNotes?: string | null;
+  blockedAt?: string | null;
+};
+
+export async function listUsers(token: string, params: { page?: number; pageSize?: number; search?: string; role?: string; status?: string } = {}) {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k,v]) => { if (v !== undefined && v !== '') qs.append(k, String(v)); });
+  const res = await fetch(`${API_BASE}/api/users?${qs.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch users');
+  }
+  const data = await res.json();
+  data.data = data.data.map((u: any) => ({
+    ...u,
+    avatar: u.avatar && u.avatar.startsWith('/') ? API_BASE.replace(/\/$/, '') + u.avatar : u.avatar
+  }));
+  return data as { data: AdminUser[]; pagination: { page: number; pageSize: number; total: number; pages: number } };
+}
+
+export async function createUser(token: string, user: { name: string; email: string; password: string; role?: string; status?: string; adminNotes?: string }) {
+  const res = await fetch(`${API_BASE}/api/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(user)
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to create user');
+  }
+  return res.json();
+}
+
+export async function updateUser(token: string, id: string, patch: { role?: string; status?: string; adminNotes?: string }) {
+  const res = await fetch(`${API_BASE}/api/users/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(patch)
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to update user');
+  }
+  return res.json();
+}
+
+export async function deleteUser(token: string, id: string) {
+  const res = await fetch(`${API_BASE}/api/users/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to delete user');
+  }
+  return res.json();
+}
+
+export async function getUserDetail(token: string, id: string): Promise<{ user: AdminUser }> {
+  const res = await fetch(`${API_BASE}/api/users/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch user');
+  }
+  const data = await res.json();
+  if (data?.user?.avatar && data.user.avatar.startsWith('/')) {
+    data.user.avatar = API_BASE.replace(/\/$/, '') + data.user.avatar;
+  }
+  return data;
+}
+
+export async function blockUser(token: string, id: string, note?: string) {
+  return updateUser(token, id, { status: 'blocked', ...(note ? { adminNotes: note } : {}) });
+}
+
+export async function unblockUser(token: string, id: string, note?: string) {
+  return updateUser(token, id, { status: 'active', ...(note ? { adminNotes: note } : {}) });
+}
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE}/api/auth/login`, {
@@ -87,7 +180,11 @@ export async function getProfile(token: string): Promise<{
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || 'Failed to load profile');
   }
-  return res.json();
+  const data = await res.json();
+  if (data?.profile?.avatar && data.profile.avatar.startsWith('/')) {
+    data.profile.avatar = API_BASE.replace(/\/$/, '') + data.profile.avatar;
+  }
+  return data;
 }
 
 export async function updateProfile(token: string, profileData: Partial<UserProfile>): Promise<{ profile: UserProfile }> {
@@ -120,6 +217,25 @@ export async function updateAvatar(token: string, avatar: string): Promise<{ ava
     throw new Error(data.message || 'Failed to update avatar');
   }
   return res.json();
+}
+
+export async function uploadAvatar(token: string, file: File): Promise<{ avatar: string }> {
+  const form = new FormData();
+  form.append('avatar', file);
+  const res = await fetch(`${API_BASE}/api/settings/avatar/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to upload avatar');
+  }
+  const data = await res.json();
+  if (data?.avatar && data.avatar.startsWith('/')) {
+    data.avatar = API_BASE.replace(/\/$/, '') + data.avatar;
+  }
+  return data;
 }
 
 export async function updateNotifications(token: string, notifications: Partial<NotificationSettings>): Promise<{ notifications: NotificationSettings }> {
