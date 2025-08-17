@@ -64,6 +64,8 @@ export type AdminUser = {
   avatar?: string | null;
   adminNotes?: string | null;
   blockedAt?: string | null;
+  blockedUntil?: string | null;
+  remainingBlockSeconds?: number | null;
 };
 
 export async function listUsers(token: string, params: { page?: number; pageSize?: number; search?: string; role?: string; status?: string } = {}) {
@@ -97,7 +99,7 @@ export async function createUser(token: string, user: { name: string; email: str
   return res.json();
 }
 
-export async function updateUser(token: string, id: string, patch: { role?: string; status?: string; adminNotes?: string }) {
+export async function updateUser(token: string, id: string, patch: { role?: string; status?: string; adminNotes?: string; blockedUntil?: string | null }) {
   const res = await fetch(`${API_BASE}/api/users/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -135,8 +137,31 @@ export async function getUserDetail(token: string, id: string): Promise<{ user: 
   return data;
 }
 
-export async function blockUser(token: string, id: string, note?: string) {
-  return updateUser(token, id, { status: 'blocked', ...(note ? { adminNotes: note } : {}) });
+export type UserBlockAudit = {
+  id: string;
+  action: 'block' | 'unblock' | 'extend';
+  reason?: string | null;
+  previousBlockedUntil?: string | null;
+  newBlockedUntil?: string | null;
+  actingUserId: string;
+  actor?: { id: string; name: string; email: string; role: string } | null;
+  createdAt: string;
+};
+
+export async function getUserBlockAudits(token: string, id: string): Promise<{ audits: UserBlockAudit[] }> {
+  const res = await fetch(`${API_BASE}/api/users/${id}/block-audits`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const data = await res.json().catch(()=>({}));
+    throw new Error(data.message || 'Failed to load audit trail');
+  }
+  return res.json();
+}
+
+export async function blockUser(token: string, id: string, note?: string, blockedUntil?: Date | string | null) {
+  let until: string | null | undefined = undefined;
+  if (blockedUntil instanceof Date) until = blockedUntil.toISOString();
+  else if (typeof blockedUntil === 'string') until = blockedUntil;
+  return updateUser(token, id, { status: 'blocked', ...(note ? { adminNotes: note } : {}), ...(until ? { blockedUntil: until } : {}) });
 }
 
 export async function unblockUser(token: string, id: string, note?: string) {
@@ -155,6 +180,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
   }
   return res.json();
 }
+
 
 export async function getDashboard(token: string) {
   const res = await fetch(`${API_BASE}/api/dashboard`, {
@@ -347,7 +373,18 @@ export const auth = {
   setToken(token: string) {
     localStorage.setItem('pds_token', token);
   },
+  getCurrentUser(): { id: string; role: 'admin' | 'user' } | null {
+    try {
+      const raw = localStorage.getItem('pds_current_user');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  },
+  setCurrentUser(user: { id: string; role: 'admin' | 'user'; name?: string; email?: string }) {
+    try { localStorage.setItem('pds_current_user', JSON.stringify(user)); } catch {}
+  },
   clear() {
     localStorage.removeItem('pds_token');
+    localStorage.removeItem('pds_current_user');
   }
 };

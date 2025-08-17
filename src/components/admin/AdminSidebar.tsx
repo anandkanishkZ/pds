@@ -61,7 +61,7 @@ export default function AdminSidebar({ nav = defaultNav, onLogout }: { nav?: Adm
             onClick={() => onLogout?.()}
             className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-white shadow-sm ring-1 ring-offset-1 ring-offset-white dark:ring-offset-slate-900 focus-visible:outline-none focus-visible:ring-2 transition"
             style={{ 
-              backgroundColor: '#ff0808',
+              backgroundColor: '#fc1819',
               borderColor: '#ff0808'
             } as React.CSSProperties}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e60707'}

@@ -74,6 +74,10 @@ export default (sequelize) => {
         type: DataTypes.DATE,
         allowNull: true
       },
+      blockedUntil: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
       // Notification preferences
       emailNotifications: {
         type: DataTypes.BOOLEAN,
