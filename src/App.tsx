@@ -7,6 +7,8 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
+import CategoryProductsPage from './pages/CategoryProducts';
+import ProductItemDetailPage from './pages/ProductItemDetail';
 import DieselProductDetail from './pages/DieselProductDetail';
 import Contact from './pages/Contact';
 import DealershipInquiry from './pages/DealershipInquiry';
@@ -19,6 +21,12 @@ import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/Dashboard';
 import Users from './pages/admin/Users';
 import Settings from './pages/admin/Settings';
+import AdminProductsPage from './pages/admin/Products';
+import AdminEditProductPage from './pages/admin/EditProduct';
+import AdminCategoriesPage from './pages/admin/Categories';
+import MediaLibrary from './pages/admin/MediaLibrary';
+import AdminInquiriesPage from './pages/admin/Inquiries';
+import AdminDealershipInquiriesPage from './pages/admin/DealershipInquiries';
 
 import { useEffect } from 'react';
 
@@ -46,6 +54,12 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Users />} />
+            <Route path="products" element={<AdminProductsPage />} />
+            <Route path="products/:productSlug/edit" element={<AdminEditProductPage />} />
+            <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="media" element={<MediaLibrary />} />
+            <Route path="inquiries" element={<AdminInquiriesPage />} />
+            <Route path="dealership-inquiries" element={<AdminDealershipInquiriesPage />} />
             <Route path="settings" element={<Settings />} />
             {/* Future nested routes: products, inquiries */}
           </Route>
@@ -61,6 +75,8 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/products" element={<Products />} />
+                    <Route path="/products/category/:categorySlug" element={<CategoryProductsPage />} />
+                    <Route path="/products/item/:productSlug" element={<ProductItemDetailPage />} />
                     <Route path="/products/diesel-engine-oil" element={<DieselEngineOil />} />
                     <Route path="/products/diesel-engine-oil/:dieselId" element={<DieselProductDetail />} />
                     <Route path="/products/:id" element={<ProductDetail />} />

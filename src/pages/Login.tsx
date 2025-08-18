@@ -14,9 +14,10 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-  const res = await login(email, password);
-  auth.setToken(res.token);
-  navigate('/admin');
+      const res = await login(email, password);
+      auth.setToken(res.token);
+      auth.setCurrentUser(res.user);
+      navigate('/admin');
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

@@ -9,7 +9,8 @@ const Contact = () => {
     company: '',
     phone: '',
     subject: '',
-    message: ''
+    message: '',
+    honeypot: '' // Bot detection field
   });
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<null | { type: 'success' | 'error'; msg: string }>(null);
@@ -21,19 +22,61 @@ const Contact = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus(null);
+    
     if (!formData.name || !formData.email || !formData.message) {
       setStatus({ type: 'error', msg: 'Please complete required fields before submitting.' });
       return;
     }
+
+    // Client-side email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setStatus({ type: 'error', msg: 'Please provide a valid email address.' });
+      return;
+    }
+
+    if (formData.message.length < 10) {
+      setStatus({ type: 'error', msg: 'Message must be at least 10 characters long.' });
+      return;
+    }
+
     setSubmitting(true);
-    setTimeout(() => {
+
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+      const response = await fetch(`${API_BASE}/api/inquiries`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          company: formData.company.trim() || undefined,
+          phone: formData.phone.trim() || undefined,
+          subject: formData.subject || undefined,
+          message: formData.message.trim(),
+          honeypot: formData.honeypot // Include honeypot field for bot detection
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setStatus({ type: 'success', msg: result.message || 'Message sent successfully. We will respond shortly.' });
+        setFormData({ name: '', email: '', company: '', phone: '', subject: '', message: '', honeypot: '' });
+      } else {
+        setStatus({ type: 'error', msg: result.message || 'Failed to send message. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Contact form submission error:', error);
+      setStatus({ type: 'error', msg: 'Network error. Please check your connection and try again.' });
+    } finally {
       setSubmitting(false);
-      setStatus({ type: 'success', msg: 'Message sent successfully. We will respond shortly.' });
-      setFormData({ name: '', email: '', company: '', phone: '', subject: '', message: '' });
-    }, 1000);
+    }
   };
 
   const contactInfo = [
@@ -187,6 +230,19 @@ const Contact = () => {
                   rows={6}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-400 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 resize-vertical"
                 ></textarea>
+                
+                {/* Honeypot field - hidden from users, used for bot detection */}
+                <input
+                  type="text"
+                  name="honeypot"
+                  value={formData.honeypot}
+                  onChange={handleInputChange}
+                  style={{ display: 'none' }}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                />
+                
                 {status && (
                   <div className={`text-sm font-medium px-4 py-3 rounded-lg border transition-colors ${
                     status.type === 'success' 

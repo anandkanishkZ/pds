@@ -32,8 +32,14 @@ router.post(
 
       return res.status(201).json({ id: user.id, name: user.name, email: user.email });
     } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: 'Registration failed' });
+      // Secure error logging - never log sensitive data
+      console.error('Registration error:', { 
+        timestamp: new Date().toISOString(),
+        ip: req.ip,
+        email: email ? email.substring(0, 3) + '***' : 'unknown',
+        error: err.name
+      });
+      return res.status(500).json({ error: 'REGISTRATION_FAILED' });
     }
   }
 );
@@ -71,8 +77,14 @@ router.post(
       const token = jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
       return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: 'Login failed' });
+      // Secure error logging - never log the full error object
+      console.error('Login error:', { 
+        timestamp: new Date().toISOString(),
+        ip: req.ip,
+        email: email ? email.substring(0, 3) + '***' : 'unknown',
+        error: err.name
+      });
+      return res.status(500).json({ error: 'AUTHENTICATION_FAILED' });
     }
   }
 );
@@ -80,13 +92,30 @@ router.post(
 export function authMiddleware(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ message: 'Missing token' });
+  if (!token) return res.status(401).json({ error: 'UNAUTHORIZED' });
+  
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, {
+      algorithms: ['HS256'],
+      maxAge: JWT_EXPIRES_IN
+    });
+    
+    // Validate token expiry explicitly
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      return res.status(401).json({ error: 'TOKEN_EXPIRED' });
+    }
+    
     req.user = payload;
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
+    // Log security event without sensitive data
+    console.warn('Authentication failed:', { 
+      ip: req.ip, 
+      userAgent: req.get('User-Agent'),
+      error: err.name,
+      timestamp: new Date().toISOString()
+    });
+    return res.status(401).json({ error: 'UNAUTHORIZED' });
   }
 }
 

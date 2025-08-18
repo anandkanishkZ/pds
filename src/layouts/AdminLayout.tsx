@@ -124,6 +124,7 @@ export default function AdminLayout() {
       { to: "/admin/users", label: "Users", icon: Users },
       { to: "/admin/products", label: "Products", icon: Package },
       { to: "/admin/inquiries", label: "Inquiries", icon: Mail },
+  { to: "/admin/dealership-inquiries", label: "Dealership Inquiries", icon: Mail },
       { to: "/admin/settings", label: "Settings", icon: Settings },
     ],
     []

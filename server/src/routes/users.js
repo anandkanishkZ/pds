@@ -61,8 +61,13 @@ router.get('/', authMiddleware, async (req, res) => {
       pagination: { page: Number(page), pageSize: limit, total: count, pages: Math.ceil(count / limit) }
     });
   } catch (err) {
-    console.error('List users error', err);
-    res.status(500).json({ message: 'Failed to list users' });
+    // Secure error logging without sensitive data
+    console.error('List users error:', { 
+      timestamp: new Date().toISOString(),
+      error: err.name,
+      userId: req.user?.id
+    });
+    res.status(500).json({ error: 'OPERATION_FAILED' });
   }
 });
 
@@ -180,13 +185,24 @@ router.patch('/:id', [
           newBlockedUntil: newBlockedUntil
         });
       } catch (e) {
-        console.error('Audit log write failed', e);
+        // Secure audit log error handling
+        console.error('Audit log write failed:', { 
+          timestamp: new Date().toISOString(),
+          userId: user.id,
+          error: e.name
+        });
       }
     }
     res.json({ message: 'Updated', id: user.id });
   } catch (err) {
-    console.error('Update user error', err);
-    res.status(500).json({ message: 'Failed to update user' });
+    // Secure error logging
+    console.error('Update user error:', { 
+      timestamp: new Date().toISOString(),
+      error: err.name,
+      userId: req.params.id,
+      actingUserId: req.user?.id
+    });
+    res.status(500).json({ error: 'UPDATE_FAILED' });
   }
 });
 

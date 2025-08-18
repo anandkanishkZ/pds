@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getDashboard, auth } from '../../lib/api';
-import { Users, Package, Mail, TrendingUp } from 'lucide-react';
+import { Users, Package, Mail, AlertCircle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [data, setData] = useState<any>(null);
@@ -27,8 +27,8 @@ export default function AdminDashboard() {
         {[
           { label: 'Users', value: data?.stats?.users ?? '—', icon: Users, color: 'bg-brand-600' },
           { label: 'Products', value: data?.stats?.products ?? '—', icon: Package, color: 'bg-brand-500' },
-          { label: 'Inquiries', value: data?.stats?.inquiries ?? '—', icon: Mail, color: 'bg-amber-400 text-slate-900' },
-          { label: 'Growth', value: data?.stats?.growth ?? '+12%', icon: TrendingUp, color: 'bg-brand-700' },
+          { label: 'Total Inquiries', value: data?.stats?.inquiries ?? '—', icon: Mail, color: 'bg-amber-400 text-slate-900' },
+          { label: 'New Inquiries', value: data?.stats?.newInquiries ?? '—', icon: AlertCircle, color: 'bg-red-500' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
             <div className="flex items-center justify-between">

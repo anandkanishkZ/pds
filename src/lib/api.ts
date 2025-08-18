@@ -388,3 +388,516 @@ export const auth = {
     localStorage.removeItem('pds_current_user');
   }
 };
+
+// ---------------- Products & Categories (Admin + Public) -----------------
+
+export type ProductCategory = {
+  id: string;
+  name: string;
+  code?: string | null;
+  slug: string;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  heroImageUrl?: string | null;
+  status: 'active' | 'coming_soon' | 'archived';
+  sortOrder: number;
+  productCount?: number; // present on admin list endpoint
+};
+
+export type ProductListItem = {
+  id: string; categoryId: string; name: string; slug: string; shortDescription?: string; imageUrl?: string | null; viscosity?: string | null; apiGrade?: string | null; isActive: boolean; createdAt: string;
+};
+
+export type ProductDetail = ProductListItem & {
+  longDescription?: string | null; healthSafety?: string | null; meta?: any;
+  category?: ProductCategory;
+  features?: { id: string; label: string; order: number }[];
+  applications?: { id: string; label: string; order: number }[];
+  packSizes?: { id: string; displayLabel: string; numericValue?: string; unit?: string; order: number }[];
+  media?: { id: string; type: string; url: string; altText?: string; order: number }[];
+};
+
+function authHeaders(token: string, extra: Record<string,string> = {}) { return { Authorization: `Bearer ${token}`, ...extra }; }
+
+export async function listProductCategories(token: string, opts: { includeArchived?: boolean } = {}) {
+  // Try admin enriched endpoint first (includes archived + productCount + reliable IDs)
+  let adminOk = false; let data: any;
+  try {
+    const resAdmin = await fetch(`${API_BASE}/api/products/admin/categories`, { headers: authHeaders(token) });
+    if (resAdmin.ok) {
+      data = await resAdmin.json();
+      adminOk = true;
+    }
+  } catch {}
+  if (!adminOk) {
+    const qs = new URLSearchParams();
+    if (opts.includeArchived) qs.set('status','active'); // placeholder
+    const res = await fetch(`${API_BASE}/api/products/categories?${qs.toString()}`, { headers: authHeaders(token) });
+    if (!res.ok) throw new Error('Failed to load categories');
+    data = await res.json();
+  }
+  return (data.data || []) as ProductCategory[];
+}
+
+export async function createProductCategory(token: string, payload: { name: string; code?: string }) {
+  const res = await fetch(`${API_BASE}/api/products/categories`, { method:'POST', headers: authHeaders(token, { 'Content-Type':'application/json' }), body: JSON.stringify(payload) });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Failed to create category'); }
+  return (await res.json()).category as ProductCategory;
+}
+
+export async function updateProductCategory(token: string, id: string, patch: Partial<{ name:string; code:string; shortDescription:string; longDescription:string; heroImageUrl:string; status:'active'|'coming_soon'|'archived'; sortOrder:number; seoMeta:any }>) {
+  const res = await fetch(`${API_BASE}/api/products/categories/${id}`, { method:'PATCH', headers: authHeaders(token, { 'Content-Type':'application/json' }), body: JSON.stringify(patch) });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Failed to update category'); }
+  return (await res.json()).category as ProductCategory;
+}
+
+export async function deleteProductCategory(token: string, id: string) {
+  const res = await fetch(`${API_BASE}/api/products/categories/${id}`, { method:'DELETE', headers: authHeaders(token) });
+  if (!res.ok) { 
+    const d = await res.json().catch(()=>({})); 
+    throw new Error(d.message || d.details || 'Failed to delete category'); 
+  }
+  return res.json() as Promise<{ message: string }>;
+}
+
+export async function listCategoryProducts(token: string, categorySlug: string, page=1, pageSize=25) {
+  const res = await fetch(`${API_BASE}/api/products/categories/${categorySlug}/products?page=${page}&pageSize=${pageSize}`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error('Failed to load products');
+  return res.json() as Promise<{ data: ProductListItem[]; pagination: { page:number; pageSize:number; total:number; pages:number } }>;
+}
+
+export async function listAllProducts(token: string, page=1, pageSize=100) {
+  const res = await fetch(`${API_BASE}/api/products/items?page=${page}&pageSize=${pageSize}`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error('Failed to load products');
+  return res.json() as Promise<{ data: ProductListItem[]; pagination: { page:number; pageSize:number; total:number; pages:number } }>;
+}
+
+export async function createProduct(token: string, payload: { categoryId: string; name: string; shortDescription?: string; imageUrl?: string; viscosity?: string; apiGrade?: string; }) {
+  const res = await fetch(`${API_BASE}/api/products/items`, { method:'POST', headers: authHeaders(token, { 'Content-Type':'application/json' }), body: JSON.stringify(payload) });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Failed to create product'); }
+  return (await res.json()).product as ProductDetail;
+}
+
+export async function getProduct(token: string, slug: string) {
+  const res = await fetch(`${API_BASE}/api/products/items/${slug}`, { headers: authHeaders(token) });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Failed to load product'); }
+  return (await res.json()).product as ProductDetail;
+}
+
+export async function updateProduct(token: string, id: string, patch: Partial<{ name:string; slug:string; shortDescription:string; longDescription:string; imageUrl:string; viscosity:string; apiGrade:string; healthSafety:string; isActive:boolean; categoryId:string; meta:any }>) {
+  const res = await fetch(`${API_BASE}/api/products/items/${id}`, { method:'PATCH', headers: authHeaders(token, { 'Content-Type':'application/json' }), body: JSON.stringify(patch) });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Failed to update product'); }
+  return (await res.json()).product as ProductDetail;
+}
+
+export async function replaceProductFeatures(token: string, id: string, features: string[]) {
+  const res = await fetch(`${API_BASE}/api/products/items/${id}/features`, { method:'PUT', headers: authHeaders(token, { 'Content-Type':'application/json' }), body: JSON.stringify({ features }) });
+  if (!res.ok) throw new Error('Failed to update features');
+  return res.json();
+}
+
+export async function replaceProductApplications(token: string, id: string, applications: string[]) {
+  const res = await fetch(`${API_BASE}/api/products/items/${id}/applications`, { method:'PUT', headers: authHeaders(token, { 'Content-Type':'application/json' }), body: JSON.stringify({ applications }) });
+  if (!res.ok) throw new Error('Failed to update applications');
+  return res.json();
+}
+
+export async function replaceProductPacks(token: string, id: string, packs: { displayLabel:string; numericValue?: number | string; unit?: string }[]) {
+  const res = await fetch(`${API_BASE}/api/products/items/${id}/packs`, { method:'PUT', headers: authHeaders(token, { 'Content-Type':'application/json' }), body: JSON.stringify({ packs }) });
+  if (!res.ok) throw new Error('Failed to update packs');
+  return res.json();
+}
+
+export async function uploadProductMedia(token: string, id: string, file: File, type: 'image'|'spec'|'msds'|'brochure', altText?: string) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('type', type);
+  if (altText) form.append('altText', altText);
+  const res = await fetch(`${API_BASE}/api/products/items/${id}/media`, { method:'POST', headers: authHeaders(token), body: form });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Failed to upload'); }
+  return (await res.json()).media as { id:string; type:string; url:string; altText?:string; order:number };
+}
+
+export async function deleteProductMedia(token: string, mediaId: string) {
+  const res = await fetch(`${API_BASE}/api/products/media/${mediaId}`, { method:'DELETE', headers: authHeaders(token) });
+  if (!res.ok) throw new Error('Failed to delete media');
+  return res.json();
+}
+
+// Direct (unattached) media upload
+export async function directMediaUpload(token: string, file: File, opts: { altText?: string; type?: string } = {}) {
+  const form = new FormData();
+  form.append('file', file);
+  if (opts.altText) form.append('altText', opts.altText);
+  if (opts.type) form.append('type', opts.type);
+  const res = await fetch(`${API_BASE}/api/media/upload`, { method:'POST', headers: authHeaders(token), body: form });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Upload failed'); }
+  return (await res.json()).media as { id:string; type:string; url:string; altText?:string };
+}
+
+// Direct upload with progress (uses XMLHttpRequest to surface upload progress events)
+export function directMediaUploadWithProgress(
+  token: string,
+  file: File,
+  opts: { altText?: string; type?: string } = {},
+  onProgress?: (fraction: number) => void
+): Promise<{ id:string; type:string; url:string; altText?:string }>{
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/api/media/upload`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve(data.media);
+          } catch (e) {
+            reject(new Error('Malformed server response'));
+          }
+        } else {
+          let message = 'Upload failed';
+          try { message = (JSON.parse(xhr.responseText).message) || message; } catch(_){}
+          reject(new Error(message));
+        }
+      }
+    };
+    xhr.upload.onprogress = (evt) => {
+      if (evt.lengthComputable && onProgress) {
+        onProgress(evt.loaded / evt.total);
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    const form = new FormData();
+    form.append('file', file);
+    if (opts.altText) form.append('altText', opts.altText);
+    if (opts.type) form.append('type', opts.type!);
+    xhr.send(form);
+  });
+}
+
+// Dedicated media listing (server /api/media)
+export type MediaLibraryItem = { id:string|null; productId:string|null; productName:string|null; type:string|null; url:string; altText:string|null; size?:number; mime?:string|null; createdAt?:string; ext?:string };
+export async function listMedia(token: string, params: { page?:number; pageSize?:number; q?:string; type?:string; sort?: string } = {}): Promise<{ data: MediaLibraryItem[]; pagination:{ page:number; pageSize:number; total:number; pages:number } }> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set('page', String(params.page));
+  if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+  if (params.q) qs.set('q', params.q);
+  if (params.type) qs.set('type', params.type);
+  if (params.sort) qs.set('sort', params.sort);
+  const res = await fetch(`${API_BASE}/api/media?${qs.toString()}`, { headers: authHeaders(token) });
+  if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message||'Failed to load media'); }
+  return res.json();
+}
+
+// NOTE: Backend currently lacks a dedicated list endpoint for all media. This client helper attempts to
+// derive a library by fetching recent products and aggregating media. If a future endpoint
+// like /api/products/media is added, replace this implementation.
+export async function listAllProductMedia(token: string, limitProducts = 100) : Promise<{ items: Array<{ id:string; type:string; url:string; altText?:string; productId:string; productName:string; createdAt?:string; size?:number; mime?:string }>}> {
+  // Heuristic: fetch categories then first page of each until product limit reached
+  const categories = await listProductCategories(token).catch(()=>[] as ProductCategory[]);
+  const collected: any[] = [];
+  for (const cat of categories) {
+    if (collected.length >= limitProducts) break;
+    const page = await listCategoryProducts(token, cat.slug, 1, 25).catch(()=>({ data: [] as ProductListItem[] }));
+    for (const p of page.data) {
+      if (collected.length >= limitProducts) break;
+      try {
+        const detail = await getProduct(token, p.slug);
+        (detail.media||[]).forEach(m => collected.push({ id: m.id, type: m.type, url: m.url, altText: m.altText, productId: p.id, productName: p.name, createdAt: p.createdAt, size: (m as any).meta?.size, mime: (m as any).meta?.mime }));
+      } catch {}
+    }
+  }
+  // Sort newest first using createdAt fallback
+  collected.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+  return { items: collected };
+}
+
+export async function deleteProduct(token: string, id: string) {
+  const res = await fetch(`${API_BASE}/api/products/items/${id}`, { method:'DELETE', headers: authHeaders(token) });
+  if (!res.ok) throw new Error('Failed to delete product');
+  return res.json();
+}
+
+// -------- Public (no auth) convenience wrappers -------
+export async function fetchPublicCategories(): Promise<ProductCategory[]> {
+  const res = await fetch(`${API_BASE}/api/products/categories`);
+  if (!res.ok) throw new Error('Failed to load categories');
+  const data = await res.json();
+  return data.data as ProductCategory[];
+}
+
+export async function fetchPublicCategory(slug: string): Promise<{ category: ProductCategory; productCount: number }> {
+  const res = await fetch(`${API_BASE}/api/products/categories/${slug}`);
+  if (!res.ok) throw new Error('Category not found');
+  return res.json();
+}
+
+export async function fetchPublicCategoryProducts(slug: string, page=1, pageSize=25): Promise<{ data: ProductListItem[]; pagination: { page:number; pageSize:number; total:number; pages:number } }> {
+  const res = await fetch(`${API_BASE}/api/products/categories/${slug}/products?page=${page}&pageSize=${pageSize}`);
+  if (!res.ok) throw new Error('Failed to load products');
+  return res.json();
+}
+
+export async function fetchPublicProduct(slug: string): Promise<ProductDetail> {
+  const res = await fetch(`${API_BASE}/api/products/items/${slug}`);
+  if (!res.ok) throw new Error('Product not found');
+  return (await res.json()).product as ProductDetail;
+}
+
+// Inquiry types
+export type Inquiry = {
+  id: string;
+  name: string;
+  email: string;
+  company?: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+  status: 'new' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  source: string;
+  ipAddress?: string;
+  userAgent?: string;
+  assignedTo?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+  assignedUser?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  resolvedByUser?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
+
+export type InquiryStats = {
+  total: number;
+  byStatus: {
+    new: number;
+    in_progress: number;
+    resolved: number;
+    closed: number;
+  };
+  byPriority: {
+    urgent: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  unresolved: number;
+};
+
+// ---------------- Dealership Inquiries ----------------
+export type DealershipInquiry = {
+  id: string;
+  companyName: string;
+  contactPerson: string;
+  email: string;
+  phone?: string | null;
+  location?: string | null;
+  businessType?: string | null;
+  yearsInBusiness?: number | null;
+  currentBrands?: string | null;
+  monthlyVolume?: string | null;
+  message?: string | null;
+  status: 'new' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  source: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  assignedTo?: string | null;
+  assignedUser?: { id: string; name: string; email: string } | null;
+  resolvedBy?: string | null;
+  resolvedByUser?: { id: string; name: string; email: string } | null;
+  adminNotes?: string | null;
+  metadata?: any;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DealershipInquiryStats = InquiryStats;
+
+export async function createDealershipInquiry(data: Omit<DealershipInquiry, 'id' | 'status' | 'priority' | 'source' | 'createdAt' | 'updatedAt'> & { honeypot?: string }) {
+  const res = await fetch(`${API_BASE}/api/dealership-inquiries`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.message || 'Failed to submit inquiry');
+  }
+  return res.json();
+}
+
+export async function listDealershipInquiries(token: string, params: { page?: number; pageSize?: number; search?: string; status?: string; priority?: string; assignedTo?: string; sortBy?: string; sortOrder?: 'asc'|'desc'; } = {}) {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k,v])=>{ if (v !== undefined && v !== '') qs.append(k, String(v)); });
+  const res = await fetch(`${API_BASE}/api/dealership-inquiries?${qs.toString()}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.message || 'Failed to fetch inquiries');
+  }
+  return res.json() as Promise<{ data: DealershipInquiry[]; pagination: { page: number; pageSize: number; total: number; pages: number } }>;
+}
+
+export async function getDealershipInquiry(token: string, id: string) {
+  const res = await fetch(`${API_BASE}/api/dealership-inquiries/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.message || 'Failed to fetch inquiry'); }
+  return res.json() as Promise<DealershipInquiry>;
+}
+
+export async function updateDealershipInquiry(token: string, id: string, patch: { status?: string; priority?: string; assignedTo?: string; adminNotes?: string; resolvedBy?: string; }) {
+  const res = await fetch(`${API_BASE}/api/dealership-inquiries/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(patch) });
+  if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.message || 'Failed to update inquiry'); }
+  return res.json() as Promise<{ message: string; inquiry: DealershipInquiry }>;
+}
+
+export async function deleteDealershipInquiry(token: string, id: string) {
+  const res = await fetch(`${API_BASE}/api/dealership-inquiries/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.message || 'Failed to delete inquiry'); }
+  return res.json() as Promise<{ message: string }>;
+}
+
+export async function getDealershipInquiryStats(token: string) {
+  const res = await fetch(`${API_BASE}/api/dealership-inquiries/stats/summary`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.message || 'Failed to fetch inquiry statistics'); }
+  return res.json() as Promise<DealershipInquiryStats>;
+}
+
+// Create inquiry (public endpoint)
+export async function createInquiry(inquiry: {
+  name: string;
+  email: string;
+  company?: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+}): Promise<{ message: string; id: string }> {
+  const res = await fetch(`${API_BASE}/api/inquiries`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(inquiry)
+  });
+  
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to submit inquiry');
+  }
+  
+  return res.json();
+}
+
+// Get all inquiries (admin only)
+export async function listInquiries(token: string, params: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+  priority?: string;
+  assignedTo?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+} = {}) {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== '') qs.append(k, String(v));
+  });
+
+  const res = await fetch(`${API_BASE}/api/inquiries?${qs.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch inquiries');
+  }
+
+  return res.json() as Promise<{
+    data: Inquiry[];
+    pagination: { page: number; pageSize: number; total: number; pages: number };
+  }>;
+}
+
+// Get inquiry by ID (admin only)
+export async function getInquiry(token: string, id: string): Promise<Inquiry> {
+  const res = await fetch(`${API_BASE}/api/inquiries/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch inquiry');
+  }
+
+  return res.json();
+}
+
+// Update inquiry (admin only)
+export async function updateInquiry(token: string, id: string, updates: {
+  status?: string;
+  priority?: string;
+  assignedTo?: string;
+  adminNotes?: string;
+  resolvedBy?: string;
+}): Promise<{ message: string; inquiry: Inquiry }> {
+  const res = await fetch(`${API_BASE}/api/inquiries/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to update inquiry');
+  }
+
+  return res.json();
+}
+
+// Delete inquiry (admin only)
+export async function deleteInquiry(token: string, id: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/inquiries/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to delete inquiry');
+  }
+
+  return res.json();
+}
+
+// Get inquiry statistics (admin only)
+export async function getInquiryStats(token: string): Promise<InquiryStats> {
+  const res = await fetch(`${API_BASE}/api/inquiries/stats/summary`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch inquiry statistics');
+  }
+
+  return res.json();
+}
+
+// ============ Dealership Inquiries API ============
+
+
+
+

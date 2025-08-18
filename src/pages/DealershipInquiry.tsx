@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createDealershipInquiry } from '../lib/api';
 import { Building2, Mail, MapPin, Phone, Send, User, FileText } from 'lucide-react';
 import BackToTop from '../components/BackToTop';
 
@@ -111,7 +112,7 @@ const DealershipInquiry: React.FC = () => {
     setErrors((prev) => ({ ...prev, ...(msg ? { [name]: msg } : (() => { const { [name]: _, ...rest } = prev as any; return rest; })()) }));
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus(null);
     const { valid, newErrors } = validateForm(form);
@@ -120,13 +121,17 @@ const DealershipInquiry: React.FC = () => {
       setStatus({ type: 'error', msg: 'Please fix the highlighted fields and try again.' });
       return;
     }
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      setSubmitting(true);
+      await createDealershipInquiry({ ...form });
       setStatus({ type: 'success', msg: 'Thanks! Your dealership inquiry has been received. We will contact you shortly.' });
       setForm({ companyName: '', contactPerson: '', email: '', phone: '', location: '', businessType: '', yearsInBusiness: '', currentBrands: '', monthlyVolume: '', message: '' });
       setErrors({});
-    }, 900);
+    } catch (err:any) {
+      setStatus({ type: 'error', msg: err.message || 'Failed to submit. Please try again.' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -144,7 +149,12 @@ const DealershipInquiry: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2">
-              <form onSubmit={onSubmit} className="p-8 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg space-y-6">
+              <form onSubmit={onSubmit} className="p-8 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg space-y-6" noValidate>
+                {/* Honeypot field */}
+                <div className="hidden" aria-hidden="true">
+                  <label>Leave blank</label>
+                  <input type="text" name="honeypot" tabIndex={-1} autoComplete="off" />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name *</label>
