@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { auth, type DealershipInquiry, listDealershipInquiries, getDealershipInquiryStats, updateDealershipInquiry, deleteDealershipInquiry, type DealershipInquiryStats } from '../../lib/api';
-import { Loader2, RefreshCw, Search, Mail, Building2 } from 'lucide-react';
+import { RefreshCw, Search, Mail, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 
