@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
   X,
@@ -55,6 +55,7 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaSearch, setMediaSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const createAndStayRef = useRef(false);
 
   // Load media library
   const loadMediaLibrary = useCallback(async () => {
@@ -103,9 +104,14 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
       setSubmitting(true);
       await createGalleryItem(token, formData);
       toast.success('Gallery item created successfully');
-      resetForm();
       onSuccess();
-      onClose();
+      if (createAndStayRef.current) {
+        resetForm();
+        createAndStayRef.current = false; // reset flag after use
+      } else {
+        resetForm();
+        onClose();
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to create gallery item');
     } finally {
@@ -121,6 +127,7 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
   // Select media
   const selectMedia = (item: MediaLibraryItem) => {
     setFormData(prev => ({ ...prev, imageUrl: item.url }));
+    // Close only the media picker, keep parent modal open
     setShowMediaLibrary(false);
   };
 
@@ -128,59 +135,111 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
   const filteredMediaItems = mediaItems.filter(item =>
     !mediaSearch || 
     (item.altText && item.altText.toLowerCase().includes(mediaSearch.toLowerCase())) ||
-    item.filename.toLowerCase().includes(mediaSearch.toLowerCase())
+    item.url.toLowerCase().includes(mediaSearch.toLowerCase())
   );
 
-  if (!isOpen) return null;
+  // Keyboard shortcuts (Esc to close, Ctrl/Cmd+Enter to submit)
+  // Track previously focused element for focus restoration
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
-  const modalContent = (
-    <motion.div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div 
-        className="w-full max-w-4xl max-h-[95vh] overflow-hidden rounded-2xl shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, y: 20, scale: 0.95 }} 
-        animate={{ opacity: 1, y: 0, scale: 1 }} 
-        exit={{ opacity: 0, y: 20, scale: 0.95 }} 
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      >
-        <div className="flex flex-col h-full rounded-2xl bg-white dark:bg-slate-900 shadow-xl ring-1 ring-slate-900/10 dark:ring-slate-50/10 overflow-hidden border border-slate-200 dark:border-slate-700">
-          {/* Header - Fixed */}
-          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/10 rounded-lg">
-                <Plus className="h-5 w-5" />
-              </div>
-              <div className="leading-tight">
-                <h2 className="text-sm font-semibold tracking-wide uppercase">Create Gallery Item</h2>
-                <p className="text-xs text-white/90">Add a new item to showcase in your gallery</p>
-              </div>
+  useEffect(()=>{
+    if(isOpen){
+      previouslyFocusedRef.current = document.activeElement as HTMLElement;
+      // keyboard shortcuts only while open
+      const handler = (e: KeyboardEvent) => {
+        if(e.key === 'Escape' && !showMediaLibrary) { e.preventDefault(); onClose(); }
+        if((e.ctrlKey||e.metaKey) && e.key === 'Enter') {
+          const form = document.getElementById('create-gallery-form') as HTMLFormElement | null;
+          if(form && !submitting && formData.title && formData.imageUrl) form.requestSubmit();
+        }
+      };
+      window.addEventListener('keydown', handler);
+      // move focus inside modal
+      setTimeout(()=>{
+        const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        firstFocusable?.focus();
+      },0);
+      return ()=>window.removeEventListener('keydown', handler);
+    }
+  },[isOpen, showMediaLibrary, submitting, formData.title, formData.imageUrl, onClose]);
+
+  // Lock body scroll while modal open
+  useEffect(()=>{
+    if(!isOpen) return; 
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  },[isOpen]);
+
+  // Internal render state to allow exit animation
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  useEffect(()=>{ if(isOpen) setShouldRender(true); }, [isOpen]);
+
+  const titleCharLimit = 120;
+  const descCharLimit = 600;
+  const titleRemaining = titleCharLimit - formData.title.length;
+  const descRemaining = descCharLimit - formData.description.length;
+
+  const modalContent = shouldRender ? (
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <motion.div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }}
+          onClick={() => { if (!showMediaLibrary) onClose(); }}
+          role="dialog" aria-modal="true" aria-label="Create gallery item"
+          onAnimationComplete={() => {
+            if(!isOpen){
+              // restore focus after fade-out completes
+              previouslyFocusedRef.current?.focus();
+              setShouldRender(false);
+            }
+          }}
+        >
+          <motion.div 
+            ref={modalRef}
+            className="w-full max-w-5xl max-h-[92vh] rounded-2xl shadow-2xl flex flex-col bg-white dark:bg-slate-900 ring-1 ring-slate-900/10 dark:ring-slate-50/10 border border-slate-200 dark:border-slate-700"
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, y: 24, scale: 0.94 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 16, scale: 0.96 }} 
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+        {/* Header */}
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/10 rounded-lg">
+              <Plus className="h-5 w-5" />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-medium backdrop-blur-sm">
-                <ImageIcon className="h-3 w-3" /> New Item
-              </span>
-              <button 
-                onClick={onClose} 
-                className="p-2 rounded-lg hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
-                aria-label="Close modal"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            <div className="leading-tight">
+              <h2 className="text-sm font-semibold tracking-wide uppercase">Create Gallery Item</h2>
+              <p className="text-xs text-white/90">Add a new item to showcase in your gallery</p>
             </div>
           </div>
-
-          {/* Body - Scrollable */}
-          <form onSubmit={handleCreate} className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-medium backdrop-blur-sm">
+              <ImageIcon className="h-3 w-3" /> New Item
+            </span>
+            <button 
+              onClick={onClose} 
+              className="p-2 rounded-lg hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+        {/* Body */}
+        <form id="create-gallery-form" onSubmit={handleCreate} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+            <div className="grid lg:grid-cols-2 gap-6 items-start">
+              {/* Left Column */}
+              <div className="space-y-6 order-2 lg:order-1">
                   <section className="rounded-xl border border-slate-200 dark:border-slate-700 p-5 bg-slate-50/60 dark:bg-slate-800/40">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
                       <ImageIcon className="h-4 w-4" /> Basic Information
@@ -199,6 +258,9 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
                           placeholder="Enter gallery item title..."
                           required
                         />
+                        <div className="flex justify-end text-[11px] font-medium tracking-wide">
+                          <span className={titleRemaining < 0 ? 'text-rose-500' : titleRemaining < 15 ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}>{titleRemaining} left</span>
+                        </div>
                       </div>
 
                       {/* Description Input */}
@@ -208,11 +270,16 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
                         </label>
                         <textarea
                           value={formData.description}
-                          onChange={(e) => handleInputChange('description', e.target.value)}
-                          rows={4}
+                          onChange={(e) => {
+                            if(e.target.value.length <= descCharLimit) handleInputChange('description', e.target.value);
+                          }}
+                          rows={5}
                           className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 resize-none"
                           placeholder="Describe this gallery item..."
                         />
+                        <div className="flex justify-end text-[11px] font-medium tracking-wide">
+                          <span className={descRemaining < 0 ? 'text-rose-500' : descRemaining < 40 ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}>{descRemaining} left</span>
+                        </div>
                       </div>
 
                       {/* Category Select */}
@@ -235,9 +302,8 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
                     </div>
                   </section>
                 </div>
-
                 {/* Right Column */}
-                <div className="space-y-6">
+                <div className="space-y-6 order-1 lg:order-2">
                   <section className="rounded-xl border border-slate-200 dark:border-slate-700 p-5 bg-white dark:bg-slate-800">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
                       <Calendar className="h-4 w-4" /> Details & Settings
@@ -270,16 +336,14 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
                           </button>
                         </div>
                         {formData.imageUrl && (
-                          <div className="mt-2">
+                          <div className="mt-2 relative group">
                             <img
                               src={formData.imageUrl}
                               alt="Preview"
-                              className="w-full h-32 object-cover rounded-lg border border-slate-200 dark:border-slate-600"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
+                              className="w-full h-40 object-cover rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                              onError={(e) => { const target = e.target as HTMLImageElement; target.style.display = 'none'; }}
                             />
+                            <button type="button" onClick={()=>handleInputChange('imageUrl','')} className="absolute top-2 right-2 px-2 py-1 rounded-md text-[11px] bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">Remove</button>
                           </div>
                         )}
                       </div>
@@ -357,45 +421,67 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
             </div>
 
             {/* Footer - Fixed at bottom */}
-            <div className="flex-shrink-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 px-6 py-4">
-              <div className="flex justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl font-medium transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !formData.title || !formData.imageUrl}
-                  className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 disabled:from-slate-400 disabled:to-slate-500 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
-                >
-                  {submitting ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      Create Gallery Item
-                    </>
-                  )}
-                </button>
+            {/* Footer */}
+            <div className="flex-shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-700 px-6 py-4 sticky bottom-0">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 order-2 sm:order-1">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={submitting || !formData.title || !formData.imageUrl}
+                      onClick={() => { createAndStayRef.current = true; }}
+                      className="px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 text-brand-700 dark:text-brand-300 ring-1 ring-brand-300/60 dark:ring-brand-400/40 hover:bg-brand-50 dark:hover:bg-brand-900/30 disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      <Plus className="w-4 h-4" /> Add Another
+                    </button>
+                    <button
+                      type="button"
+                      onClick={()=>resetForm()}
+                      className="px-4 py-2.5 rounded-lg font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >Reset</button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 order-1 sm:order-2 justify-end">
+                  <button
+                    type="submit"
+                    disabled={submitting || !formData.title || !formData.imageUrl}
+                    onClick={() => { createAndStayRef.current = false; }}
+                    className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 disabled:from-slate-400 disabled:to-slate-500 text-white px-7 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
+                  >
+                    {submitting ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5" />
+                        Create Item
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </form>
-        </div>
-      </motion.div>
+        </motion.div>
 
       {/* Media Library Modal */}
       {showMediaLibrary && (
         <motion.div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          role="dialog" aria-modal="true" aria-label="Media library"
+          onClick={(e)=>{ e.stopPropagation(); setShowMediaLibrary(false); }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -403,6 +489,7 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-0 w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col"
+            onClick={(e)=>e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-6 z-10">
@@ -447,14 +534,14 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                  {filteredMediaItems.map((item) => (
+          {filteredMediaItems.map((item) => (
                     <motion.div
                       key={item.id}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => selectMedia(item)}
+            onClick={(e) => { e.stopPropagation(); selectMedia(item); }}
                       className="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-brand-400 transition-all duration-200 shadow-sm hover:shadow-lg"
                     >
                       <img
@@ -506,10 +593,12 @@ const CreateGalleryModal: React.FC<CreateGalleryModalProps> = ({ isOpen, onClose
           </motion.div>
         </motion.div>
       )}
-    </motion.div>
-  );
+        </motion.div>
+      )}
+    </AnimatePresence>
+  ) : null;
 
-  return createPortal(modalContent, document.body);
+  return modalContent ? createPortal(modalContent, document.body) : null;
 };
 
 export default CreateGalleryModal;

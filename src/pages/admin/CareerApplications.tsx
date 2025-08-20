@@ -2,26 +2,19 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   Search,
-  Filter,
   Eye,
   Star,
-  Clock,
   Mail,
   Phone,
-  MapPin,
-  Briefcase,
   Calendar,
   Download,
   ChevronDown,
   ChevronUp,
   User,
-  FileText,
-  MessageSquare,
   CheckCircle,
   XCircle,
   AlertCircle,
   ArrowLeft,
-  Plus,
 } from 'lucide-react';
 import { auth } from '../../lib/api';
 
@@ -74,7 +67,6 @@ export default function AdminApplicationsPage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedApplications, setSelectedApplications] = useState<Set<string>>(new Set());
   const [expandedApplications, setExpandedApplications] = useState<Set<string>>(new Set());
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusModalApplication, setStatusModalApplication] = useState<JobApplication | null>(null);
@@ -98,55 +90,38 @@ export default function AdminApplicationsPage() {
     { value: 'high', label: 'High', color: 'red' },
   ];
 
+  // Load applications whenever filters or pagination change
   useEffect(() => {
-    loadApplications();
-  }, [currentPage, statusFilter, priorityFilter, searchTerm, jobId]);
+    let isCancelled = false;
+    const load = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams({ page: currentPage.toString(), limit: '20' });
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        if (priorityFilter !== 'all') params.append('priority', priorityFilter);
+        if (searchTerm) params.append('search', searchTerm);
+        if (jobId) params.append('jobId', jobId);
 
-  const loadApplications = async () => {
-    try {
-      setLoading(true);
-      
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '20'
-      });
-      
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter);
-      }
-      
-      if (priorityFilter !== 'all') {
-        params.append('priority', priorityFilter);
-      }
-      
-      if (searchTerm) {
-        params.append('search', searchTerm);
-      }
-      
-      if (jobId) {
-        params.append('jobId', jobId);
-      }
-      
-      const response = await fetch(`/api/careers/admin/applications?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${auth.getToken()}`
-        }
-      });
-      
-      if (response.ok) {
+        const response = await fetch(`/api/careers/admin/applications?${params}`, {
+          headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+        });
+        if (!response.ok) throw new Error('Failed to load applications');
         const data = await response.json();
-        setApplications(data.applications);
-        setTotalPages(data.pagination.totalPages);
-      } else {
-        setError('Failed to load applications');
+        if (!isCancelled) {
+          setApplications(data.applications);
+          setTotalPages(data.pagination.totalPages);
+          setError(null);
+        }
+      } catch (err) {
+        if (!isCancelled) setError('Failed to load applications');
+        console.error('Error loading applications:', err);
+      } finally {
+        if (!isCancelled) setLoading(false);
       }
-    } catch (err) {
-      setError('Failed to load applications');
-      console.error('Error loading applications:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    load();
+    return () => { isCancelled = true; };
+  }, [currentPage, statusFilter, priorityFilter, searchTerm, jobId]);
 
   const updateApplicationStatus = async (applicationId: string, status: string, notes?: string, rating?: number, priority?: string) => {
     try {
@@ -176,15 +151,27 @@ export default function AdminApplicationsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const statusConfig = statusOptions.find(s => s.value === status);
-    return statusConfig?.color || 'slate';
+  // Instead of dynamic Tailwind template strings (which lint cannot statically analyze),
+  // map status & priority to explicit class name sets.
+  const statusClassMap: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    reviewing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+    shortlisted: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400',
+    'interview-scheduled': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
+    interviewed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400',
+    offered: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400',
+    hired: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    rejected: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
   };
 
-  const getPriorityColor = (priority: string) => {
-    const priorityConfig = priorityOptions.find(p => p.value === priority);
-    return priorityConfig?.color || 'slate';
+  const priorityClassMap: Record<string, string> = {
+    low: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300',
+    medium: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+    high: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
   };
+
+  const getStatusClasses = (status: string) => statusClassMap[status] || 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300';
+  const getPriorityClasses = (priority: string) => priorityClassMap[priority] || 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300';
 
   const toggleExpanded = (applicationId: string) => {
     const newExpanded = new Set(expandedApplications);
@@ -197,8 +184,8 @@ export default function AdminApplicationsPage() {
   };
 
   const StatusModal = () => {
-    const [selectedStatus, setSelectedStatus] = useState(statusModalApplication?.status || 'pending');
-    const [selectedPriority, setSelectedPriority] = useState(statusModalApplication?.priority || 'medium');
+  const [selectedStatus, setSelectedStatus] = useState<JobApplication['status']>(statusModalApplication?.status || 'pending');
+  const [selectedPriority, setSelectedPriority] = useState<JobApplication['priority']>(statusModalApplication?.priority || 'medium');
     const [modalNotes, setModalNotes] = useState(statusModalApplication?.notes || '');
     const [modalRating, setModalRating] = useState(statusModalApplication?.rating || 0);
 
@@ -226,7 +213,7 @@ export default function AdminApplicationsPage() {
               </label>
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => setSelectedStatus(e.target.value as JobApplication['status'])}
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               >
                 {statusOptions.map(option => (
@@ -243,7 +230,7 @@ export default function AdminApplicationsPage() {
               </label>
               <select
                 value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
+                onChange={(e) => setSelectedPriority(e.target.value as JobApplication['priority'])}
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               >
                 {priorityOptions.map(option => (
@@ -413,7 +400,7 @@ export default function AdminApplicationsPage() {
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                           {application.applicantName}
                         </h3>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-${getPriorityColor(application.priority)}-100 text-${getPriorityColor(application.priority)}-800 dark:bg-${getPriorityColor(application.priority)}-900/20 dark:text-${getPriorityColor(application.priority)}-400`}>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium capitalize ${getPriorityClasses(application.priority)}`}>
                           {application.priority} priority
                         </span>
                         {application.rating && (
@@ -446,7 +433,7 @@ export default function AdminApplicationsPage() {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-${getStatusColor(application.status)}-100 text-${getStatusColor(application.status)}-800 dark:bg-${getStatusColor(application.status)}-900/20 dark:text-${getStatusColor(application.status)}-400`}>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusClasses(application.status)}`}>
                     {statusOptions.find(s => s.value === application.status)?.label || application.status}
                   </span>
                   

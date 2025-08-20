@@ -24,7 +24,8 @@ import {
   Layers,
   ShieldAlert,
   AlertCircle,
-  RotateCcw
+  RotateCcw,
+  GripVertical
 } from 'lucide-react';
 import { 
   listAdminGalleryItems,
@@ -32,6 +33,7 @@ import {
   updateGalleryItem, 
   deleteGalleryItem,
   listMedia,
+  reorderGalleryItems,
   auth,
   type GalleryItem, 
   type GalleryStats,
@@ -52,6 +54,9 @@ const AdminGalleryPage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<GalleryItem[] | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -276,6 +281,45 @@ const AdminGalleryPage: React.FC = () => {
     { value: 'archived', label: 'Archived' }
   ];
 
+  // Drag & Drop Handlers (grid view only)
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
+    setDraggingId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    // snapshot order for visual immediate feedback
+    setPendingOrder([...filteredItems]);
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, overId: string) => {
+    e.preventDefault();
+    if (!draggingId || draggingId === overId) return;
+    setPendingOrder(prev => {
+      const base = prev ? [...prev] : [...filteredItems];
+      const fromIndex = base.findIndex(i => i.id === draggingId);
+      const toIndex = base.findIndex(i => i.id === overId);
+      if (fromIndex === -1 || toIndex === -1) return prev;
+      const updated = [...base];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return updated;
+    });
+  };
+  const handleDragEnd = () => {
+    setDraggingId(null);
+  };
+  const saveReorder = async () => {
+    if (!token || !pendingOrder) return;
+    try {
+      setSavingOrder(true);
+      await reorderGalleryItems(token, pendingOrder.map(i => ({ id: i.id })));
+      toast.success('Order updated');
+      setGalleryItems(pendingOrder);
+      setPendingOrder(null);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save order');
+      setPendingOrder(null);
+    } finally { setSavingOrder(false); }
+  };
+  const cancelReorder = () => { setPendingOrder(null); setDraggingId(null); };
+
   // Customer Inquiry Modal Component (pixel-identical to Inquiries page)
   const CustomerInquiryModal: React.FC<{ galleryItem: GalleryItem; onClose: () => void }> = ({ galleryItem, onClose }) => {
     const formatDate = (dateString: string) => {
@@ -492,7 +536,6 @@ const AdminGalleryPage: React.FC = () => {
 
   // Edit Gallery Modal Component (same UI/UX as Gallery Item Inquiry)
   const EditGalleryModal: React.FC<{
-    galleryItem: GalleryItem;
     formData: typeof formData;
     setFormData: React.Dispatch<React.SetStateAction<typeof formData>>;
     onSubmit: (e: React.FormEvent) => void;
@@ -503,7 +546,6 @@ const AdminGalleryPage: React.FC = () => {
     mediaItems: MediaLibraryItem[];
     loadMediaLibrary: () => Promise<void>;
   }> = ({ 
-    galleryItem, 
     formData, 
     setFormData, 
     onSubmit, 
@@ -514,249 +556,299 @@ const AdminGalleryPage: React.FC = () => {
     mediaItems, 
     loadMediaLibrary 
   }) => {
+    const titleCharLimit = 120;
+    const descCharLimit = 600;
+    const titleRemaining = titleCharLimit - formData.title.length;
+    const descRemaining = descCharLimit - formData.description.length;
+
+    const filteredMediaItems = mediaItems.filter(item =>
+      !mediaSearch || 
+      (item.altText && item.altText.toLowerCase().includes(mediaSearch.toLowerCase())) ||
+      item.url.toLowerCase().includes(mediaSearch.toLowerCase())
+    );
+
+    const selectMedia = (item: MediaLibraryItem) => {
+      setFormData(prev => ({ ...prev, imageUrl: item.url }));
+      setShowMediaLibrary(false);
+    };
+
     const modalContent = (
-      <motion.div 
+      <motion.div
         className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={() => { if(!showMediaLibrary) onClose(); }}
       >
-        <motion.div 
-          className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-          initial={{ opacity: 0, y: 20, scale: 0.95 }} 
-          animate={{ opacity: 1, y: 0, scale: 1 }} 
-          exit={{ opacity: 0, y: 20, scale: 0.95 }} 
+        <motion.div
+          className="w-full max-w-5xl max-h-[92vh] rounded-2xl shadow-2xl flex flex-col bg-white dark:bg-slate-900 ring-1 ring-slate-900/10 dark:ring-slate-50/10 border border-slate-200 dark:border-slate-700"
+          onClick={(e)=>e.stopPropagation()}
+          initial={{ opacity: 0, y: 24, scale: 0.94 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <div className="flex-1 flex flex-col rounded-2xl bg-white dark:bg-slate-900 shadow-xl ring-1 ring-slate-900/10 dark:ring-slate-50/10 overflow-hidden border border-slate-200 dark:border-slate-700">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/10 rounded-lg">
-                  <Edit className="h-5 w-5" />
-                </div>
-                <div className="leading-tight">
-                  <h2 className="text-sm font-semibold tracking-wide uppercase">Edit Gallery Item</h2>
-                  <p className="text-xs text-white/90">{selectedItem?.title}</p>
-                </div>
+          {/* Header */}
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-t-2xl">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/10 rounded-lg">
+                <Edit className="h-5 w-5" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-medium backdrop-blur-sm">
-                  <CheckCircle className="h-3 w-3" /> {selectedItem?.status}
-                </span>
-                <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-medium backdrop-blur-sm">
-                  <Flag className="h-3 w-3" /> {selectedItem?.category}
-                </span>
-                <button 
-                  onClick={onClose} 
-                  className="p-2 rounded-lg hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
-                  aria-label="Close modal"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+              <div className="leading-tight">
+                <h2 className="text-sm font-semibold tracking-wide uppercase">Edit Gallery Item</h2>
+                <p className="text-xs text-white/90">Update details for this item</p>
               </div>
             </div>
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <form onSubmit={onSubmit} className="space-y-6">
-                {/* Title Input */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Enter gallery item title..."
-                    required
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 resize-none"
-                    placeholder="Describe your gallery item..."
-                  />
-                </div>
-
-                {/* Image URL and Browse */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Image *
-                  </label>
-                  <div className="flex gap-3">
-                    <input
-                      type="url"
-                      value={formData.imageUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                      className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
-                      placeholder="Enter image URL or browse media library..."
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        loadMediaLibrary();
-                        setShowMediaLibrary(true);
-                      }}
-                      className="px-6 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-colors duration-200 flex items-center gap-2"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      Browse
-                    </button>
-                  </div>
-                  {formData.imageUrl && (
-                    <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                      <img 
-                        src={formData.imageUrl} 
-                        alt="Preview" 
-                        className="w-full h-32 object-cover rounded-lg"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-medium backdrop-blur-sm"><Flag className="h-3 w-3" /> {formData.category}</span>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+          <form onSubmit={onSubmit} className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              <div className="grid lg:grid-cols-2 gap-6 items-start">
+                {/* Left Column */}
+                <div className="space-y-6 order-2 lg:order-1">
+                  <section className="rounded-xl border border-slate-200 dark:border-slate-700 p-5 bg-slate-50/60 dark:bg-slate-800/40">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> Basic Information
+                    </h3>
+                    <div className="space-y-4">
+                      {/* Title */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Title *</label>
+                        <input
+                          type="text"
+                          value={formData.title}
+                          onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                          placeholder="Enter gallery item title..."
+                          required
+                        />
+                        <div className="flex justify-end text-[11px] font-medium tracking-wide">
+                          <span className={titleRemaining < 0 ? 'text-rose-500' : titleRemaining < 15 ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}>{titleRemaining} left</span>
+                        </div>
+                      </div>
+                      {/* Description */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Description</label>
+                        <textarea
+                          value={formData.description}
+                          onChange={(e) => { if(e.target.value.length <= descCharLimit) setFormData(prev => ({ ...prev, description: e.target.value })); }}
+                          rows={5}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 resize-none"
+                          placeholder="Describe this gallery item..."
+                        />
+                        <div className="flex justify-end text-[11px] font-medium tracking-wide">
+                          <span className={descRemaining < 0 ? 'text-rose-500' : descRemaining < 40 ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}>{descRemaining} left</span>
+                        </div>
+                      </div>
+                      {/* Category */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Category *</label>
+                        <select
+                          value={formData.category}
+                          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                          required
+                        >
+                          <option value="facility">🏢 Facilities</option>
+                          <option value="products">📦 Products</option>
+                          <option value="events">🎉 Events</option>
+                          <option value="achievements">🏆 Achievements</option>
+                        </select>
+                      </div>
                     </div>
-                  )}
+                  </section>
                 </div>
-
-                {/* Category and Date Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Category *
-                    </label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
-                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
-                    >
-                      <option value="facility">🏢 Facilities</option>
-                      <option value="products">📦 Products</option>
-                      <option value="events">🎉 Events</option>
-                      <option value="achievements">🏆 Achievements</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Date *
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Enter location (optional)..."
-                  />
-                </div>
-
-                {/* Settings Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Featured Item
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative">
+                {/* Right Column */}
+                <div className="space-y-6 order-1 lg:order-2">
+                  <section className="rounded-xl border border-slate-200 dark:border-slate-700 p-5 bg-white dark:bg-slate-800">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+                      <Calendar className="h-4 w-4" /> Details & Settings
+                    </h3>
+                    <div className="space-y-4">
+                      {/* Image */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Image *</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={formData.imageUrl}
+                            onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                            className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                            placeholder="https://example.com/image.jpg"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => { loadMediaLibrary(); setShowMediaLibrary(true); }}
+                            className="px-4 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-colors duration-200 flex items-center gap-2"
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                            Browse
+                          </button>
+                        </div>
+                        {formData.imageUrl && (
+                          <div className="mt-2 relative group">
+                            <img
+                              src={formData.imageUrl}
+                              alt="Preview"
+                              className="w-full h-40 object-cover rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                              onError={(e) => { const target = e.target as HTMLImageElement; target.style.display = 'none'; }}
+                            />
+                            <button type="button" onClick={()=>setFormData(prev=>({...prev,imageUrl:''}))} className="absolute top-2 right-2 px-2 py-1 rounded-md text-[11px] bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">Remove</button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Date */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Date</label>
+                        <input
+                          type="date"
+                          value={formData.date}
+                          onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                        />
+                      </div>
+                      {/* Location */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Location</label>
+                        <input
+                          type="text"
+                          value={formData.location}
+                          onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                          placeholder="Enter location..."
+                        />
+                      </div>
+                      {/* Featured Toggle */}
+                      <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={formData.featured}
                           onChange={(e) => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
                           className="sr-only"
                         />
-                        <div className={`w-6 h-6 rounded-md border-2 transition-all duration-200 ${
-                          formData.featured 
-                            ? 'bg-brand-500 border-brand-500' 
-                            : 'border-slate-300 dark:border-slate-600 group-hover:border-brand-400'
-                        }`}>
-                          {formData.featured && (
-                            <CheckCircle className="w-4 h-4 text-white absolute top-0.5 left-0.5" />
-                          )}
+                        <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.featured ? 'bg-brand-600' : 'bg-gray-200 dark:bg-gray-700'}`}> <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.featured ? 'translate-x-6' : 'translate-x-1'}`} /></div>
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Featured Item</span>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Show this item prominently</p>
                         </div>
+                      </label>
+                      {/* Status */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Status</label>
+                        <select
+                          value={formData.status}
+                          onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                        >
+                          <option value="active">✅ Active</option>
+                          <option value="archived">📁 Archived</option>
+                        </select>
                       </div>
-                      <span className="text-sm text-slate-600 dark:text-slate-400">
-                        Mark as featured item
-                      </span>
-                    </label>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Status
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
-                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
-                    >
-                      <option value="active">✅ Active</option>
-                      <option value="archived">📁 Archived</option>
-                    </select>
-                  </div>
+                    </div>
+                  </section>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4 pt-6 border-t border-slate-200 dark:border-slate-700">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-6 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl font-medium transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="flex-shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-700 px-6 py-4 sticky bottom-0">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 order-2 sm:order-1">
+                  <button type="button" onClick={onClose} className="px-5 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors duration-200">Cancel</button>
+                </div>
+                <div className="flex items-center gap-3 order-1 sm:order-2 justify-end">
                   <button
                     type="submit"
                     disabled={submitting || !formData.title || !formData.imageUrl}
-                    className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 disabled:from-slate-400 disabled:to-slate-500 text-white px-8 py-3 rounded-xl font-semibold flex items-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
+                    className="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 disabled:from-slate-400 disabled:to-slate-500 text-white px-7 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
                   >
-                    {submitting ? (
-                      <>
-                        <RefreshCw className="w-5 h-5 animate-spin" />
-                        Updating...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-5 h-5" />
-                        Update Gallery Item
-                      </>
-                    )}
+                    {submitting ? (<><RefreshCw className="w-5 h-5 animate-spin" />Updating...</>) : (<><Save className="w-5 h-5" />Update Item</>)}
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
-          </div>
+          </form>
         </motion.div>
+        {/* Media Library Overlay */}
+        {showMediaLibrary && (
+          <motion.div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog" aria-modal="true" aria-label="Media library"
+            onClick={(e)=>{ e.stopPropagation(); setShowMediaLibrary(false); }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-0 w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col"
+              onClick={(e)=>e.stopPropagation()}
+            >
+              <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-6 z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">📁 Media Library</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Choose an image from your media library</p>
+                  </div>
+                  <button onClick={() => setShowMediaLibrary(false)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors duration-200 group">
+                    <X className="w-5 h-5 text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200" />
+                  </button>
+                </div>
+                <div className="mt-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search media files..."
+                      value={mediaSearch}
+                      onChange={(e) => setMediaSearch(e.target.value)}
+                      className="w-full pl-4 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-8">
+                {mediaLoading ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">{[...Array(10)].map((_, i) => (<div key={i} className="aspect-square bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse"></div>))}</div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    {filteredMediaItems.map(item => (
+                      <motion.div key={item.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={(e)=>{ e.stopPropagation(); selectMedia(item); }} className="group relative aspect-square bg-slate-100 dark:bg-slate-700 rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-brand-400 transition-all duration-200 shadow-sm hover:shadow-lg">
+                        <img src={item.url} alt={item.altText || 'Media'} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full p-3"><ImageIcon className="w-6 h-6 text-slate-700 dark:text-slate-300" /></div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+                {filteredMediaItems.length === 0 && !mediaLoading && (
+                  <div className="text-center py-16">
+                    <ImageIcon className="w-16 h-16 text-slate-400 mx-auto mb-6" />
+                    <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">{mediaSearch ? 'No matching media found' : 'No media available'}</h3>
+                    <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">{mediaSearch ? 'Try adjusting your search terms or browse all files.' : 'Upload some media files to your library to get started.'}</p>
+                    {mediaSearch && (<button onClick={() => setMediaSearch('')} className="mt-4 text-brand-600 hover:text-brand-700 font-medium">Clear search</button>)}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
     );
 
-    // Render to portal at document.body level to escape layout constraints
     return createPortal(modalContent, document.body);
   };
 
@@ -942,17 +1034,34 @@ const AdminGalleryPage: React.FC = () => {
 
       {/* Gallery Items */}
       {viewMode === 'grid' ? (
+        <>
+        {/* Drag instructions / actions */}
+        {pendingOrder && (
+          <div className="flex items-center justify-between mb-2 p-3 rounded-lg bg-blue-50 dark:bg-slate-700/40 border border-blue-200 dark:border-slate-600 text-sm">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200"><GripVertical className="w-4 h-4" /> Reordering mode – drag cards to rearrange.</div>
+            <div className="flex items-center gap-2">
+              <button onClick={cancelReorder} className="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600/50">Cancel</button>
+              <button disabled={savingOrder} onClick={saveReorder} className="px-3 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 flex items-center gap-1">
+                {savingOrder ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Order
+              </button>
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item) => (
+          {(pendingOrder || filteredItems).map((item) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              draggable
+              onDragStartCapture={(e)=>handleDragStart(e as any,item.id)}
+              onDragOverCapture={(e)=>handleDragOver(e as any,item.id)}
+              onDragEndCapture={handleDragEnd}
               className={`bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-all duration-200 ${
                 item.status === 'archived' 
                   ? 'opacity-60 ring-2 ring-orange-200 dark:ring-orange-800 bg-orange-50/30 dark:bg-orange-900/10' 
                   : 'hover:shadow-lg'
-              }`}
+              } ${draggingId===item.id ? 'ring-2 ring-brand-500 scale-[1.01] cursor-grabbing' : 'cursor-grab'}`}
             >
               <div className="relative aspect-video">
                 <img
@@ -970,24 +1079,17 @@ const AdminGalleryPage: React.FC = () => {
                     </div>
                   </div>
                 )}
-                <div className="absolute top-2 left-2 flex gap-2">
+                <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
                   {item.featured && (
-                    <span className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium">
-                      Featured
-                    </span>
+                    <span className="inline-flex items-center gap-1 bg-yellow-500 text-white px-2 py-0.5 rounded text-[10px] font-medium shadow-sm"><Star className="w-3 h-3" /> Featured</span>
                   )}
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    item.status === 'active' 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-orange-500 text-white'
-                  }`}>
-                    {item.status}
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium shadow-sm ${item.status === 'active' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'}`}>
+                    <CheckCircle className="w-3 h-3" /> {item.status}
                   </span>
                 </div>
-                <div className="absolute top-2 right-2">
-                  <span className="bg-black/60 text-white px-2 py-1 rounded text-xs">
-                    {item.category}
-                  </span>
+                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                  <span className="inline-flex items-center gap-1 bg-black/60 text-white px-2 py-0.5 rounded text-[10px] font-medium"><Layers className="w-3 h-3" /> {item.category}</span>
+                  {pendingOrder && <span className="bg-white/80 text-slate-700 px-2 py-0.5 rounded text-[10px] font-medium flex items-center gap-1"><GripVertical className="w-3 h-3" /> Drag</span>}
                 </div>
               </div>
               
@@ -1071,6 +1173,7 @@ const AdminGalleryPage: React.FC = () => {
             </motion.div>
           ))}
         </div>
+        </>
       ) : (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
           <div className="overflow-x-auto">
@@ -1255,7 +1358,6 @@ const AdminGalleryPage: React.FC = () => {
       <AnimatePresence>
         {showEditModal && selectedItem && (
           <EditGalleryModal 
-            galleryItem={selectedItem}
             formData={formData}
             setFormData={setFormData}
             onSubmit={handleEdit}
