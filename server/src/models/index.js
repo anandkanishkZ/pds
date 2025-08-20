@@ -15,6 +15,7 @@ import JobPostingModel from './jobPosting.js';
 import JobApplicationModel from './jobApplication.js';
 import InterviewModel from './interview.js';
 import ApplicationTimelineModel from './applicationTimeline.js';
+import LeadershipMemberModel from './leadershipMember.js';
 
 export const sequelize = new Sequelize(config.db.name, config.db.user, config.db.pass, {
   host: config.db.host,
@@ -39,6 +40,7 @@ export const JobPosting = JobPostingModel(sequelize);
 export const JobApplication = JobApplicationModel(sequelize);
 export const Interview = InterviewModel(sequelize);
 export const ApplicationTimeline = ApplicationTimelineModel(sequelize);
+export const LeadershipMember = LeadershipMemberModel(sequelize);
 
 // Associations
 UserBlockAudit.belongsTo(User, { foreignKey: 'actingUserId', as: 'actor' });
@@ -91,5 +93,6 @@ export default {
   ProductPackSize,
   ProductMedia,
   Inquiry,
-  DealershipInquiry
+  DealershipInquiry,
+  LeadershipMember
 };

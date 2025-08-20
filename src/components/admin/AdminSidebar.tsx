@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Package, Mail, Settings, LogOut, TrendingUp, FolderTree, Images, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Mail, Settings, LogOut, TrendingUp, FolderTree, Images, Briefcase, UserSquare2 } from 'lucide-react';
 
 export type AdminNavItem = {
   to: string;
@@ -15,6 +15,7 @@ const defaultNav: AdminNavItem[] = [
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
   { to: '/admin/media', label: 'Media', icon: Images },
   { to: '/admin/gallery', label: 'Gallery', icon: Images },
+  { to: '/admin/leadership', label: 'Leadership', icon: UserSquare2 },
   { to: '/admin/careers', label: 'Careers', icon: Briefcase },
   { to: '/admin/inquiries', label: 'Inquiries', icon: Mail },
   { to: '/admin/dealership-inquiries', label: 'Dealership Inquiries', icon: Mail },

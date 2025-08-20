@@ -31,6 +31,7 @@ import AdminGalleryPage from './pages/admin/Gallery';
 import AdminCareersPage from './pages/admin/Careers';
 import CareerApplications from './pages/admin/CareerApplications';
 import AdminJobForm from './pages/admin/CareerJobForm';
+import AdminLeadershipPage from './pages/admin/Leadership';
 
 import { useEffect } from 'react';
 
@@ -69,6 +70,7 @@ function App() {
             <Route path="careers/applications" element={<CareerApplications />} />
             <Route path="careers/new" element={<AdminJobForm />} />
             <Route path="careers/edit/:id" element={<AdminJobForm />} />
+            <Route path="leadership" element={<AdminLeadershipPage />} />
             <Route path="settings" element={<Settings />} />
             {/* Future nested routes: products, inquiries */}
           </Route>

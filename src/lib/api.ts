@@ -389,6 +389,64 @@ export const auth = {
   }
 };
 
+// ---------------- Leadership (Public + Admin) -----------------
+
+export type LeadershipMember = {
+  id: string;
+  name: string;
+  title?: string | null;
+  shortBio?: string | null;
+  fullBio?: string | null;
+  imageUrl?: string | null;
+  status: 'active' | 'archived';
+  sortOrder: number;
+  social?: any;
+  meta?: any;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listLeadership(): Promise<{ data: LeadershipMember[] }> {
+  const res = await fetch(`${API_BASE}/api/leadership`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch leadership');
+  }
+  return res.json();
+}
+
+export async function listLeadershipAdmin(token: string, params: { status?: string } = {}): Promise<{ data: LeadershipMember[] }> {
+  const qs = new URLSearchParams();
+  if (params.status) qs.set('status', params.status);
+  const res = await fetch(`${API_BASE}/api/leadership/admin?${qs.toString()}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) { const data = await res.json().catch(()=>({})); throw new Error(data.message||'Failed to fetch leadership'); }
+  return res.json();
+}
+
+export async function createLeadership(token: string, payload: Partial<LeadershipMember>): Promise<{ member: LeadershipMember }> {
+  const res = await fetch(`${API_BASE}/api/leadership`, { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
+  if (!res.ok) { const data = await res.json().catch(()=>({})); throw new Error(data.message||'Failed to create member'); }
+  return res.json();
+}
+
+export async function updateLeadership(token: string, id: string, payload: Partial<LeadershipMember>): Promise<{ member: LeadershipMember }> {
+  const res = await fetch(`${API_BASE}/api/leadership/${id}`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
+  if (!res.ok) { const data = await res.json().catch(()=>({})); throw new Error(data.message||'Failed to update member'); }
+  return res.json();
+}
+
+export async function deleteLeadership(token: string, id: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/leadership/${id}`, { method:'DELETE', headers:{ Authorization: `Bearer ${token}` } });
+  if (!res.ok) { const data = await res.json().catch(()=>({})); throw new Error(data.message||'Failed to delete member'); }
+  return res.json();
+}
+
+export async function reorderLeadership(token: string, items: { id: string }[]): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/leadership/reorder`, { method:'POST', headers:{ 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ items }) });
+  if (!res.ok) { const data = await res.json().catch(()=>({})); throw new Error(data.message||'Failed to reorder'); }
+  return res.json();
+}
+
 // ---------------- Products & Categories (Admin + Public) -----------------
 
 export type ProductCategory = {

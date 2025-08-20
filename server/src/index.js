@@ -18,6 +18,7 @@ import inquiriesRoutes from './routes/inquiries.js';
 import dealershipInquiriesRoutes from './routes/dealershipInquiries.js';
 import galleryRoutes from './routes/gallery.js';
 import careersRoutes from './routes/careers.js';
+import leadershipRoutes from './routes/leadership.js';
 
 dotenv.config();
 
@@ -99,6 +100,7 @@ app.use('/api/inquiries', inquiriesRoutes);
 app.use('/api/dealership-inquiries', dealershipInquiriesRoutes);
 app.use('/api/gallery', apiLimiter, galleryRoutes);
 app.use('/api/careers', careersRoutes);
+app.use('/api/leadership', leadershipRoutes);
 
 // Global error handler - must be last middleware
 app.use((err, req, res, next) => {

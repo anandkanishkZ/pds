@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Shield, Award, Beaker, Zap, Users, Target, Rocket, ArrowRight, CheckCircle, Maximize2 } from 'lucide-react';
 import BackToTop from '../components/BackToTop';
 
 interface LeadershipProfile {
+  id: string;
   name: string;
-  title: string;
-  short: string;
-  full: string;
-  photo?: string;
+  title?: string | null;
+  shortBio?: string | null;
+  fullBio?: string | null;
+  imageUrl?: string | null;
+  status: 'active' | 'archived';
+  sortOrder: number;
 }
+import { listLeadership, API_BASE } from '../lib/api';
 
 const About = () => {
   const getInitials = (name: string) =>
@@ -55,36 +59,8 @@ const About = () => {
    - Partner‑Centric — Collaboration that prioritizes uptime and outcomes.
   */
 
-  const leadership: LeadershipProfile[] = [
-    {
-      name: 'Mr. Nim Prasad Adhikari',
-      title: 'Chairperson',
-      short: 'Strategic oversight with 20+ years in Nepal’s cooperative & financial sectors, guiding resilience and sustainable growth at PDS.',
-      full: 'Mr. Nim Prasad Adhikari serves as the Chairperson of PDS, offering strategic oversight and senior leadership. With over 20 years of experience in the cooperative and financial sectors, he brings deep understanding of Nepal’s financial landscape, including market dynamics, risk assessment, and sustainable business growth. Recognized for expertise in working capital optimization, financial planning, and cash flow management, he ensures the financial health and operational stability of PDS. As Chairperson, he is both strategist and guardian—providing vision, organizational protection, and team motivation as PDS scales.',
-      photo: '/images/logobg.jpg'
-    },
-    {
-      name: 'Mr. Pradeep Bhattarai',
-      title: 'Leadership Partner',
-      short: 'Over 20 years in Nepal’s automotive sector—brand builder, distribution architect and strategic pillar of PDS.',
-      full: 'With over 20 years of hands-on experience in Nepal’s automotive industry, Mr. Pradeep Bhattarai brings deep insight and leadership to PDS. Beginning as country head for a leading OEM in the two‑wheeler after‑sales market, he helped introduce and establish the brand nationwide. After successfully running his own distribution business for automotive and energy products, he now serves as a strategic pillar of PDS. His leadership spans sales, marketing, entrepreneurship, network development, negotiations and client relationship management—fueling growth and market expansion.',
-      photo: '/images/logobg.jpg'
-    },
-    {
-      name: 'Mr. Puran Bahadur Khatri',
-      title: 'Managing Director',
-      short: 'Operational driver with two decades of sales, marketing & lubricant expertise—aligning strategy to flawless execution.',
-      full: 'Mr. Puran Bahadur Khatri serves as Managing Director and key driving force behind daily operations and strategic leadership. With 20+ years across sales, marketing and lubricants, including consultant roles domestically and internationally, he is respected for building distribution networks, dealer relationship management, and embedding global best practices. A national and international award‑winning sales professional, he has led training and promotional initiatives across India, Dubai, Bangladesh and beyond. His people‑focused leadership and execution rigor position PDS for sustained, innovative growth.',
-      photo: '/images/logobg.jpg'
-    },
-    {
-      name: 'Mr. Deepak Bhattarai',
-      title: 'Director',
-      short: 'Blends aftermarket sales expertise with a decade of humanitarian logistics & procurement leadership.',
-      full: 'Mr. Deepak Bhattarai combines 8+ years of aftermarket combustion engine segment sales with 10 years in the humanitarian and development sector. His background spans logistics, supply chain, complex procurement, contract and supplier management, spend analysis, ERP implementation, compliance and cooperative leadership. As a Board Director, his stakeholder engagement strengths, people management and innovative mindset help guide PDS’s strategic direction with operational foresight.',
-      photo: '/images/logobg.jpg'
-    }
-  ];
+  const [leaders, setLeaders] = useState<LeadershipProfile[]>([]);
+  const [loadingLeaders, setLoadingLeaders] = useState(false);
   const [selectedLeader, setSelectedLeader] = useState<LeadershipProfile | null>(null);
   const [modalEntering, setModalEntering] = useState(false);
 
@@ -93,6 +69,18 @@ const About = () => {
     // Next tick to allow mount before applying enter classes
     setTimeout(() => setModalEntering(true), 0);
   };
+  // Load leadership members
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingLeaders(true);
+        const res = await listLeadership();
+        setLeaders(res.data);
+      } catch (e) {
+        console.error('Failed to load leadership', e);
+      } finally { setLoadingLeaders(false); }
+    })();
+  }, []);
 
   const closeLeader = () => {
     setModalEntering(false);
@@ -259,9 +247,10 @@ const About = () => {
             <p className="text-gray-300 text-lg leading-relaxed">Experienced, multi‑disciplinary leadership combining finance, automotive, lubricants, distribution, logistics and development sector expertise.</p>
           </div>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {leadership.map(person => (
+            {loadingLeaders && <div className="col-span-full text-center text-gray-400 py-10">Loading leadership...</div>}
+            {leaders.map(person => (
               <div
-                key={person.name}
+                key={person.id}
                 role="button"
                 tabIndex={0}
                 onClick={() => openLeader(person)}
@@ -270,8 +259,8 @@ const About = () => {
               >
                 {/* Photo */}
                 <div className="relative aspect-[16/9] w-full">
-                  {person.photo ? (
-                    <img src={person.photo} alt={person.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                  {person.imageUrl ? (
+                    <img src={person.imageUrl.startsWith('http') ? person.imageUrl : API_BASE.replace(/\/$/, '') + (person.imageUrl.startsWith('/') ? person.imageUrl : '/' + person.imageUrl)} alt={person.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                   ) : (
                     <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-700 to-brand-500">
                       <span className="font-poppins text-2xl font-semibold text-white">{getInitials(person.name)}</span>
@@ -291,7 +280,7 @@ const About = () => {
                   </h3>
                   <p className="text-brand-300 font-medium uppercase text-xs tracking-wider mt-1">{person.title}</p>
                   <p className="mt-4 text-sm md:text-[15px] text-gray-300 leading-relaxed line-clamp-4">
-                    {person.short}
+                    {person.shortBio || person.fullBio}
                   </p>
                   {/* Card is clickable; button removed */}
                 </div>
@@ -318,14 +307,14 @@ const About = () => {
             </div>
       <div className="mt-4 grid gap-5 md:grid-cols-2">
               <div>
-                {selectedLeader.photo && (
+        {selectedLeader.imageUrl && (
           <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800 aspect-[4/5] md:aspect-auto md:h-[50vh]">
-                    <img src={selectedLeader.photo} alt={selectedLeader.name} className="absolute inset-0 w-full h-full object-cover" />
+          <img src={selectedLeader.imageUrl.startsWith('http') ? selectedLeader.imageUrl : API_BASE.replace(/\/$/, '') + (selectedLeader.imageUrl.startsWith('/') ? selectedLeader.imageUrl : '/' + selectedLeader.imageUrl)} alt={selectedLeader.name} className="absolute inset-0 w-full h-full object-cover" />
                   </div>
                 )}
               </div>
         <div className="md:max-h-[50vh] overflow-y-auto pr-1">
-                <p className="text-sm md:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">{selectedLeader.full}</p>
+        <p className="text-sm md:text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">{selectedLeader.fullBio || selectedLeader.shortBio}</p>
               </div>
             </div>
           </div>
