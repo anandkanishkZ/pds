@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPublicCategory, fetchPublicCategoryProducts, fetchPublicCategories, type ProductCategory, type ProductListItem } from '../lib/api';
 import { Loader2 } from 'lucide-react';
+import SEO from '../components/SEO';
 
 // Simple intersection observer hook for reveal animations
 function useReveal<T extends HTMLElement>() {
@@ -112,6 +113,18 @@ export default function CategoryProductsPage() {
 
   return (
     <div className="pt-16">
+      <SEO
+        title={`${category.name} | Power Drive Solution`}
+        description={category.shortDescription || `High-quality ${category.name} solutions engineered for durability and performance.`}
+        canonical={`https://powerdrivesolution.com.np/products/category/${category.slug}`}
+        jsonLd={{
+          '@context':'https://schema.org',
+          '@type':'CollectionPage',
+          name: `${category.name} Products`,
+          description: category.shortDescription || undefined,
+          url: `https://powerdrivesolution.com.np/products/category/${category.slug}`
+        }}
+      />
       <section className="py-14 bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-4 justify-between">

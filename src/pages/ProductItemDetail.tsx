@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import { fetchPublicProduct, type ProductDetail } from '../lib/api';
 import { Loader2, ArrowLeft, Check, Tag, Layers, Boxes, Image as ImageIcon } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function ProductItemDetailPage(){
   const { productSlug } = useParams<{ productSlug: string }>();
@@ -17,6 +18,22 @@ export default function ProductItemDetailPage(){
 
   return (
     <div className="pt-16">
+      <SEO
+        title={`${product.name} | Power Drive Solution`}
+        description={product.shortDescription || `High-quality lubricant product ${product.name} by Power Drive Solution.`}
+        canonical={`https://powerdrivesolution.com.np/products/item/${product.slug}`}
+        image={product.imageUrl || undefined}
+        jsonLd={{
+          '@context':'https://schema.org',
+          '@type':'Product',
+          name: product.name,
+          description: product.shortDescription || product.longDescription || '',
+          sku: product.id,
+            brand: { '@type':'Brand', name: 'Power Drive Solution' },
+            category: product.category?.name,
+          image: product.imageUrl ? [product.imageUrl] : undefined
+        }}
+      />
       <section className="bg-gray-50 dark:bg-gray-900 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex items-center space-x-2 text-sm">

@@ -19,6 +19,7 @@ import dealershipInquiriesRoutes from './routes/dealershipInquiries.js';
 import galleryRoutes from './routes/gallery.js';
 import careersRoutes from './routes/careers.js';
 import leadershipRoutes from './routes/leadership.js';
+import sitemapRoutes from './routes/sitemap.js';
 
 dotenv.config();
 
@@ -101,6 +102,8 @@ app.use('/api/dealership-inquiries', dealershipInquiriesRoutes);
 app.use('/api/gallery', apiLimiter, galleryRoutes);
 app.use('/api/careers', careersRoutes);
 app.use('/api/leadership', leadershipRoutes);
+// Public dynamic sitemap (not rate limited heavily to allow bots)
+app.use('/', sitemapRoutes);
 
 // Global error handler - must be last middleware
 app.use((err, req, res, next) => {

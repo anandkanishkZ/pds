@@ -3,6 +3,7 @@ import { ArrowRight, Award, Beaker, Shield, Loader2 } from 'lucide-react';
 import BackToTop from '../components/BackToTop';
 import { useEffect, useState } from 'react';
 import { fetchPublicCategories, type ProductCategory } from '../lib/api';
+import SEO from '../components/SEO';
 
 // Fallback icon mapping (simple heuristic)
 function categoryIcon(name: string){
@@ -19,6 +20,11 @@ const Products = () => {
 
   return (
     <div className="pt-16 transition-colors duration-300">
+      <SEO
+        title="Lubricant Product Categories | Power Drive Solution"
+        description="Explore diesel engine oils, gear & transmission oils, greases, motorcycle and passenger car motor oils from Power Drive Solution."
+        canonical="https://powerdrivesolution.com.np/products"
+      />
       {/* Hero Section */}
       <section className="relative py-20 bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">
         <div
@@ -46,38 +52,44 @@ const Products = () => {
             {!loading && !error && categories.map((category) => (
               <div
                 key={category.id}
-                className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden border border-transparent dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow w-full max-w-sm mx-auto flex flex-col overflow-hidden"
+                style={{width:'18rem'}}
               >
-                <div className="relative h-48 overflow-hidden">
+                {/* Image Top (Bootstrap style) */}
+                <div className="relative w-full h-44 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                   {category.heroImageUrl ? (
-                    <img src={category.heroImageUrl} alt={category.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    <img
+                      src={category.heroImageUrl}
+                      alt={category.name}
+                      loading="lazy"
+                      className="w-full h-full object-contain p-2 bg-white dark:bg-gray-800"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 text-slate-400">
+                    <div className="flex items-center justify-center text-slate-400">
                       {categoryIcon(category.name)}
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                  <div className="absolute top-4 left-4 bg-white/90 dark:bg-gray-900/70 backdrop-blur-sm rounded-full p-3">
-                    <div className="text-brand-600 dark:text-brand-400">{categoryIcon(category.name)}</div>
-                  </div>
                 </div>
-                
-                <div className="p-8">
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{category.name}</h3>
-                  {category.shortDescription && (<p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">{category.shortDescription}</p>)}
-                  {/* Removed Popular Grades & Key Features per request */}
-                  <Link
-                    to={category.status==='coming_soon' ? `/contact?category=${category.slug}` : `/products/category/${category.slug}`}
-                    className="inline-flex items-center text-brand-600 dark:text-brand-400 font-semibold hover:text-brand-700 dark:hover:text-brand-300 transition-colors duration-200 group"
-                  >
-                    {category.status==='coming_soon' ? 'Enquire' : 'View Details'}
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform duration-200" />
-                  </Link>
-                  {category.status==='coming_soon' && (
-                    <div className="mt-3 inline-block text-[11px] tracking-wide uppercase font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded dark:bg-orange-500/10 dark:text-orange-300">
-                      Coming Soon
-                    </div>
+                {/* Body */}
+                <div className="p-5 flex flex-col flex-1">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">{category.name}</h3>
+                  {category.shortDescription && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 leading-relaxed line-clamp-4">
+                      {category.shortDescription}
+                    </p>
                   )}
+                  <div className="mt-auto flex items-center gap-3 flex-wrap">
+                    <Link
+                      to={category.status==='coming_soon' ? `/contact?category=${category.slug}` : `/products/category/${category.slug}`}
+                      className="inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/30 transition"
+                    >
+                      {category.status==='coming_soon' ? 'Enquire' : 'View Details'}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                    {category.status==='coming_soon' && (
+                      <span className="text-[10px] uppercase tracking-wide font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded dark:bg-orange-500/10 dark:text-orange-300">Coming Soon</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

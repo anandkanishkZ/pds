@@ -9,6 +9,7 @@ const imgDEO = '/images/category/deo.jpg';
 const imgMCO = '/images/category/mco.jpg';
 const imgPCMO = '/images/category/pcmo.jpg';
 import BackToTop from '../components/BackToTop';
+import SEO from '../components/SEO';
 
 const Home = () => {
   // (Replaced former productCategories section with Industries We Serve)
@@ -38,6 +39,11 @@ const Home = () => {
 
   return (
     <div className="pt-16">
+      <SEO
+        title="Power Drive Solution | Premium Automotive & Industrial Lubricants"
+        description="High-performance automotive & industrial lubricants: diesel engine oils, gear oils, greases, motorcycle & passenger car motor oils. Engine protection & efficiency."
+        canonical="https://powerdrivesolution.com.np/"
+      />
       {/* Hero Section with Slider */}
       <HeroSlider />
 

@@ -112,15 +112,18 @@ const Footer = () => {
             <p className="text-xs md:text-sm text-white/60 order-1 md:order-none">© 2025 Power Drive Solution. All rights reserved.</p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 text-xs md:text-sm order-2 md:order-none">
               <div className="flex flex-wrap items-center gap-x-8 gap-y-3 justify-center">
-                {['Privacy Policy','Terms of Service'].map(item => (
-                  <a
-                    key={item}
-                    href="#"
-                    className="relative text-white/60 hover:text-[#fec216] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 rounded px-0.5 after:absolute after:left-0 after:-bottom-0.5 after:h-[2px] after:w-0 after:bg-[#fec216] after:transition-all after:duration-300 hover:after:w-full"
-                  >
-                    {item}
-                  </a>
-                ))}
+                <Link
+                  to="/privacy"
+                  className="relative text-white/60 hover:text-[#fec216] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 rounded px-0.5 after:absolute after:left-0 after:-bottom-0.5 after:h-[2px] after:w-0 after:bg-[#fec216] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  to="/terms"
+                  className="relative text-white/60 hover:text-[#fec216] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fec216]/70 rounded px-0.5 after:absolute after:left-0 after:-bottom-0.5 after:h-[2px] after:w-0 after:bg-[#fec216] after:transition-all after:duration-300 hover:after:w-full"
+                >
+                  Terms of Service
+                </Link>
               </div>
               <div className="text-white/60 text-center flex items-center justify-center gap-1 whitespace-nowrap">
                 <span>Developed by</span>

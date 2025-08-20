@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Clock, Users, Briefcase, ChevronRight, Send, Award, Target, AlertCircle, Loader } from 'lucide-react';
-import { toast } from 'react-toastify';
 
 interface JobListing {
   id: number;
@@ -64,25 +63,14 @@ const Career = () => {
       if (response.ok) {
         const data = await response.json();
         setJobListings(data.jobs || []);
-        
-        // Extract unique departments
         const uniqueDepts = ['all', ...new Set(data.jobs?.map((job: JobListing) => job.department) || [])];
         setDepartments(uniqueDepts as string[]);
-        
-        // Success feedback
-        if (data.jobs && data.jobs.length > 0) {
-          toast.success(`✅ Loaded ${data.jobs.length} available position${data.jobs.length === 1 ? '' : 's'}!`);
-        } else {
-          toast.info('ℹ️ No open positions available at the moment. Please check back later!');
-        }
       } else {
         setError('Failed to load job listings');
-        toast.error('❌ Failed to load job listings. Please refresh the page or try again later.');
       }
     } catch (err) {
       setError('Failed to load job listings');
       console.error('Error fetching jobs:', err);
-      toast.error('🚫 Network error while loading jobs. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -119,75 +107,34 @@ const Career = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    const newFormData = { ...formData, [name]: value };
-    setFormData(newFormData);
-    setFormErrors((prev) => ({ ...prev, [name]: '' }));
-    
-    // Check if form is complete and ready to submit
-    const isComplete = newFormData.name.trim() && 
-                      /^\S+@\S+\.\S+$/.test(newFormData.email) &&
-                      /^[0-9+()\-\s]{7,15}$/.test(newFormData.phone) &&
-                      newFormData.position.trim() &&
-                      newFormData.experience.trim();
-    
-    // Show completion feedback when all required fields are filled
-    if (isComplete && Object.values(formErrors).every(error => !error)) {
-      // Only show this toast once per form session
-      const hasShownCompletionToast = sessionStorage.getItem('form-completion-toast');
-      if (!hasShownCompletionToast) {
-        toast.success('🎯 All required fields completed! You can now submit your application.', {
-          autoClose: 4000,
-        });
-        sessionStorage.setItem('form-completion-toast', 'true');
-      }
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
-    
     if (file) {
-      // Validate file type
       if (!file.name.toLowerCase().endsWith('.pdf')) {
-        const errorMsg = 'Only PDF files are allowed. Please select a PDF file.';
-        setFormErrors((prev) => ({ ...prev, resumeFile: errorMsg }));
-        toast.error(errorMsg);
-        e.target.value = ''; // Clear the input
+        setFormErrors(prev => ({ ...prev, resumeFile: 'Only PDF files are allowed.' }));
+        e.target.value = '';
         return;
       }
-      
-      // Validate file size
       if (file.size > 5 * 1024 * 1024) {
-        const errorMsg = 'File size must be less than 5MB. Please choose a smaller file.';
-        setFormErrors((prev) => ({ ...prev, resumeFile: errorMsg }));
-        toast.error(errorMsg);
-        e.target.value = ''; // Clear the input
+        setFormErrors(prev => ({ ...prev, resumeFile: 'File size must be < 5MB.' }));
+        e.target.value = '';
         return;
       }
-      
-      // Success - file is valid
-      toast.success(`✅ PDF file "${file.name}" selected successfully!`);
     }
-    
-    setFormData((prev) => ({ ...prev, resumeFile: file }));
-    setFormErrors((prev) => ({ ...prev, resumeFile: '' }));
+    setFormData(prev => ({ ...prev, resumeFile: file }));
+    setFormErrors(prev => ({ ...prev, resumeFile: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const v = validate(formData);
     setFormErrors(v);
-    
-    // Show validation errors as toast
-    if (Object.keys(v).length > 0) {
-      const firstError = Object.values(v)[0];
-      toast.error(`Please fix the following error: ${firstError}`);
-      return;
-    }
-
+    if (Object.keys(v).length > 0) return;
     setSubmitStatus('submitting');
-    toast.info('📤 Submitting your application...');
-
     try {
       const submitData = new FormData();
       submitData.append('name', formData.name);
@@ -196,34 +143,15 @@ const Career = () => {
       submitData.append('position', formData.position);
       submitData.append('experience', formData.experience);
       submitData.append('coverLetter', formData.coverLetter);
-      
-      if (formData.resumeFile) {
-        submitData.append('resume', formData.resumeFile);
-        toast.info(`📄 Uploading resume: ${formData.resumeFile.name}`);
-      }
+      if (formData.resumeFile) submitData.append('resume', formData.resumeFile);
 
       const response = await fetch('/api/careers/apply', {
         method: 'POST',
         body: submitData,
       });
-
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         setSubmitStatus('success');
-        
-        // Success toast with detailed message
-        toast.success(
-          `🎉 Application submitted successfully! 
-          
-Your application for "${formData.position}" has been received. Our HR team will review it and get back to you soon.
-
-Application ID: ${result.application?.id?.slice(0, 8) || 'Generated'}`,
-          {
-            autoClose: 8000, // Show for 8 seconds
-          }
-        );
-        
-        // Reset form
         setFormData({
           name: '',
           email: '',
@@ -233,62 +161,21 @@ Application ID: ${result.application?.id?.slice(0, 8) || 'Generated'}`,
           coverLetter: '',
           resumeFile: null,
         });
-        
-        // Reset file input
         const fileInput = document.getElementById('resume') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
-        
-        // Clear completion toast flag for next use
-        sessionStorage.removeItem('form-completion-toast');
-        
       } else {
         const errorData = await response.json();
-        setSubmitStatus('error');
-        
-        // Detailed error handling
-        let errorMessage = 'Failed to submit application';
-        if (errorData.error === 'You have already submitted a general application') {
-          errorMessage = 'You have already submitted an application. Please wait for our response or contact us directly.';
-        } else if (errorData.error === 'Missing required fields') {
-          errorMessage = 'Please fill in all required fields and try again.';
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (errorData.details) {
-          errorMessage = `Server error: ${errorData.details}`;
-        }
-        
-        toast.error(`❌ ${errorMessage}`, {
-          autoClose: 6000,
-        });
-        
         console.error('Server error:', errorData);
+        setSubmitStatus('error');
       }
     } catch (err) {
       console.error('Error submitting application:', err);
       setSubmitStatus('error');
-      
-      // Network or unexpected error
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      toast.error(
-        `🚫 Network Error: Unable to submit application. 
-
-Please check your internet connection and try again. If the problem persists, contact us directly.
-
-Error: ${errorMessage}`,
-        {
-          autoClose: 8000,
-        }
-      );
     }
   };
 
   const scrollToForm = (positionPrefill?: string) => {
-    if (positionPrefill) {
-      setFormData((prev) => ({ ...prev, position: positionPrefill }));
-      toast.info(`📝 Application form opened for "${positionPrefill}". Please fill out the details below.`);
-    } else {
-      toast.info('📝 Please fill out the application form below to apply for any position.');
-    }
+    if (positionPrefill) setFormData(prev => ({ ...prev, position: positionPrefill }));
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -308,18 +195,129 @@ Error: ${errorMessage}`,
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-300">Loading career opportunities...</p>
-        </div>
+      <div className="min-h-screen bg-white dark:bg-gray-900" aria-busy="true" aria-label="Loading career opportunities">
+        {/* Real Hero (static content) */}
+        <section className="relative py-20 lg:py-28 overflow-hidden bg-[#06477f] text-white">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <span className="inline-block text-sm font-semibold uppercase tracking-wider bg-white/10 text-white px-4 py-2 rounded-full mb-4 border border-white/20">
+                Careers at Power Drive Solution
+              </span>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                Join Our <span className="text-[#fec216]">Innovation</span> Journey
+              </h1>
+              <p className="text-lg text-white/80 mb-0 max-w-3xl mx-auto leading-relaxed">
+                Be part of a team that's driving the future of automotive lubrication technology.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats: show icons & labels, skeleton only for dynamic numeric values */}
+        <section className="py-16 bg-gray-50 dark:bg-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+              {stats.map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-[#06477f] rounded-2xl mb-4 mx-auto text-white shadow-sm">
+                    <stat.icon className="h-8 w-8" />
+                  </div>
+                  <div className="h-8 w-24 mx-auto bg-gray-200 dark:bg-gray-700 rounded mb-2 animate-pulse" />
+                  <div className="text-sm text-gray-600 dark:text-gray-300 tracking-wide">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Job Listings Skeleton (dynamic) */}
+        <section className="py-20" aria-label="Job listings loading">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Open Positions</h2>
+              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">Loading opportunities...</p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-4 mb-12">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-11 w-40 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+              ))}
+            </div>
+
+            <div className="grid gap-8">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden p-8 animate-pulse">
+                  <div className="h-8 w-1/2 bg-gray-200 dark:bg-gray-700 rounded mb-6" />
+                  <div className="flex flex-wrap gap-4 mb-6">
+                    {Array.from({ length: 4 }).map((_, j) => (
+                      <div key={j} className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded" />
+                    ))}
+                  </div>
+                  <div className="space-y-3 mb-6">
+                    {Array.from({ length: 3 }).map((_, j) => (
+                      <div key={j} className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                    ))}
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                    <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Real Form (static) */}
+        <section className="py-20 bg-gray-50 dark:bg-gray-800">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 md:p-12">
+              <div className="text-center mb-8">
+                <span className="inline-block text-sm font-semibold uppercase tracking-wider bg-[#06477f] text-white px-4 py-2 rounded-full mb-4">Apply Now</span>
+                <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Submit Your Application</h3>
+                <p className="text-gray-600 dark:text-gray-300">You can apply even while roles are loading.</p>
+              </div>
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-6 opacity-75 pointer-events-none select-none" aria-disabled="true">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                    <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
+                    <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
+                    <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Position</label>
+                    <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</label>
+                  <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cover Letter</label>
+                  <div className="h-28 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+                </div>
+                <div className="flex justify-center">
+                  <div className="h-14 w-52 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Something went wrong</h2>
@@ -336,10 +334,9 @@ Error: ${errorMessage}`,
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Hero Section */}
-      <section className="relative py-20 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#06477f]/20 to-[#fec216]/20 dark:from-[#06477f]/10 dark:to-[#fec216]/10"></div>
+      <section className="relative py-20 lg:py-28 overflow-hidden bg-[#06477f] text-white">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div
@@ -347,17 +344,13 @@ Error: ${errorMessage}`,
                 isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
               }`}
             >
-              <span className="inline-block text-sm font-semibold uppercase tracking-wider bg-[#06477f]/10 text-[#06477f] dark:bg-[#fec216]/10 dark:text-[#fec216] px-4 py-2 rounded-full mb-4">
+              <span className="inline-block text-sm font-semibold uppercase tracking-wider bg-white/10 text-white px-4 py-2 rounded-full mb-4 border border-white/20">
                 Careers at Power Drive Solution
               </span>
-              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-                Join Our{' '}
-                <span className="bg-gradient-to-r from-[#06477f] to-[#fec216] bg-clip-text text-transparent">
-                  Innovation
-                </span>{' '}
-                Journey
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                Join Our <span className="text-[#fec216]">Innovation</span> Journey
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-lg text-white/80 mb-8 max-w-3xl mx-auto leading-relaxed">
                 Be part of a team that's driving the future of automotive lubrication technology. 
                 We offer exciting opportunities for growth, innovation, and making a real impact in the industry.
               </p>
@@ -367,7 +360,7 @@ Error: ${errorMessage}`,
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+      <section className="py-16 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -377,11 +370,11 @@ Error: ${errorMessage}`,
                   isAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                 }`}
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#06477f] to-[#fec216] rounded-2xl mb-4 mx-auto">
-                  <stat.icon className="h-8 w-8 text-white" />
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-[#06477f] rounded-2xl mb-4 mx-auto text-white shadow-sm">
+                  <stat.icon className="h-8 w-8" />
                 </div>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stat.value}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">{stat.label}</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 tracking-wide">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -389,7 +382,7 @@ Error: ${errorMessage}`,
       </section>
 
       {/* Job Listings Section */}
-      <section className="py-20">
+  <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -491,14 +484,14 @@ Error: ${errorMessage}`,
                         <div className="flex flex-col sm:flex-row gap-4">
                           <button
                             onClick={() => scrollToForm(job.title)}
-                            className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#06477f] to-[#0056b3] text-white rounded-lg font-medium hover:from-[#0056b3] hover:to-[#06477f] transition-all duration-300 shadow-lg hover:shadow-xl"
+                            className="inline-flex items-center justify-center px-6 py-3 bg-[#06477f] hover:bg-[#053961] text-white rounded-lg font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
                           >
                             <Send className="h-4 w-4 mr-2" />
                             Apply Now
                           </button>
                           <button
                             onClick={() => setSelectedJob(selectedJob === job.id ? null : job.id)}
-                            className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 group"
+                            className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
                           >
                             View Details
                             <ChevronRight 
@@ -584,7 +577,7 @@ Error: ${errorMessage}`,
       </section>
 
       {/* Application Form Section */}
-      <section className="py-20 bg-white/30 dark:bg-gray-800/30 backdrop-blur-sm">
+  <section className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
             ref={formRef}
@@ -593,7 +586,7 @@ Error: ${errorMessage}`,
             }`}
           >
             <div className="text-center mb-8">
-              <span className="inline-block text-sm font-semibold uppercase tracking-wider bg-[#06477f]/10 text-[#06477f] dark:bg-[#fec216]/10 dark:text-[#fec216] px-4 py-2 rounded-full mb-4">
+      <span className="inline-block text-sm font-semibold uppercase tracking-wider bg-[#06477f] text-white px-4 py-2 rounded-full mb-4">
                 Apply Now
               </span>
               <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
@@ -766,7 +759,7 @@ Error: ${errorMessage}`,
                 <button
                   type="submit"
                   disabled={submitStatus === 'submitting'}
-                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-[#06477f] to-[#0056b3] text-white rounded-lg font-medium hover:from-[#0056b3] hover:to-[#06477f] transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                  className="inline-flex items-center px-8 py-4 bg-[#06477f] hover:bg-[#053961] text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitStatus === 'submitting' ? (
                     <>
