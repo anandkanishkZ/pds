@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Clock, Users, Briefcase, ChevronRight, Send, Award, Target, AlertCircle, Loader } from 'lucide-react';
-import { toast } from 'react-toastify';
 
 interface JobListing {
   id: number;
@@ -68,21 +67,12 @@ const Career = () => {
         // Extract unique departments
         const uniqueDepts = ['all', ...new Set(data.jobs?.map((job: JobListing) => job.department) || [])];
         setDepartments(uniqueDepts as string[]);
-        
-        // Success feedback
-        if (data.jobs && data.jobs.length > 0) {
-          toast.success(`✅ Loaded ${data.jobs.length} available position${data.jobs.length === 1 ? '' : 's'}!`);
-        } else {
-          toast.info('ℹ️ No open positions available at the moment. Please check back later!');
-        }
       } else {
         setError('Failed to load job listings');
-        toast.error('❌ Failed to load job listings. Please refresh the page or try again later.');
       }
     } catch (err) {
       setError('Failed to load job listings');
       console.error('Error fetching jobs:', err);
-      toast.error('🚫 Network error while loading jobs. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -108,10 +98,7 @@ const Career = () => {
     if (!phoneOk) e.phone = 'Enter a valid phone number';
     if (!data.position.trim()) e.position = 'Please specify a position';
     if (!data.experience.trim()) e.experience = 'Experience is required';
-    if (data.resumeFile) {
-      if (data.resumeFile.size > 5 * 1024 * 1024) e.resumeFile = 'Max file size is 5MB';
-      if (!data.resumeFile.name.toLowerCase().endsWith('.pdf')) e.resumeFile = 'Only PDF files are allowed';
-    }
+    if (data.resumeFile && data.resumeFile.size > 5 * 1024 * 1024) e.resumeFile = 'Max file size is 5MB';
     return e;
   };
 
@@ -119,56 +106,12 @@ const Career = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    const newFormData = { ...formData, [name]: value };
-    setFormData(newFormData);
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: '' }));
-    
-    // Check if form is complete and ready to submit
-    const isComplete = newFormData.name.trim() && 
-                      /^\S+@\S+\.\S+$/.test(newFormData.email) &&
-                      /^[0-9+()\-\s]{7,15}$/.test(newFormData.phone) &&
-                      newFormData.position.trim() &&
-                      newFormData.experience.trim();
-    
-    // Show completion feedback when all required fields are filled
-    if (isComplete && Object.values(formErrors).every(error => !error)) {
-      // Only show this toast once per form session
-      const hasShownCompletionToast = sessionStorage.getItem('form-completion-toast');
-      if (!hasShownCompletionToast) {
-        toast.success('🎯 All required fields completed! You can now submit your application.', {
-          autoClose: 4000,
-        });
-        sessionStorage.setItem('form-completion-toast', 'true');
-      }
-    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
-    
-    if (file) {
-      // Validate file type
-      if (!file.name.toLowerCase().endsWith('.pdf')) {
-        const errorMsg = 'Only PDF files are allowed. Please select a PDF file.';
-        setFormErrors((prev) => ({ ...prev, resumeFile: errorMsg }));
-        toast.error(errorMsg);
-        e.target.value = ''; // Clear the input
-        return;
-      }
-      
-      // Validate file size
-      if (file.size > 5 * 1024 * 1024) {
-        const errorMsg = 'File size must be less than 5MB. Please choose a smaller file.';
-        setFormErrors((prev) => ({ ...prev, resumeFile: errorMsg }));
-        toast.error(errorMsg);
-        e.target.value = ''; // Clear the input
-        return;
-      }
-      
-      // Success - file is valid
-      toast.success(`✅ PDF file "${file.name}" selected successfully!`);
-    }
-    
     setFormData((prev) => ({ ...prev, resumeFile: file }));
     setFormErrors((prev) => ({ ...prev, resumeFile: '' }));
   };
@@ -177,16 +120,9 @@ const Career = () => {
     e.preventDefault();
     const v = validate(formData);
     setFormErrors(v);
-    
-    // Show validation errors as toast
-    if (Object.keys(v).length > 0) {
-      const firstError = Object.values(v)[0];
-      toast.error(`Please fix the following error: ${firstError}`);
-      return;
-    }
+    if (Object.keys(v).length > 0) return;
 
     setSubmitStatus('submitting');
-    toast.info('📤 Submitting your application...');
 
     try {
       const submitData = new FormData();
@@ -199,7 +135,6 @@ const Career = () => {
       
       if (formData.resumeFile) {
         submitData.append('resume', formData.resumeFile);
-        toast.info(`📄 Uploading resume: ${formData.resumeFile.name}`);
       }
 
       const response = await fetch('/api/careers/apply', {
@@ -208,22 +143,7 @@ const Career = () => {
       });
 
       if (response.ok) {
-        const result = await response.json();
         setSubmitStatus('success');
-        
-        // Success toast with detailed message
-        toast.success(
-          `🎉 Application submitted successfully! 
-          
-Your application for "${formData.position}" has been received. Our HR team will review it and get back to you soon.
-
-Application ID: ${result.application?.id?.slice(0, 8) || 'Generated'}`,
-          {
-            autoClose: 8000, // Show for 8 seconds
-          }
-        );
-        
-        // Reset form
         setFormData({
           name: '',
           email: '',
@@ -233,61 +153,21 @@ Application ID: ${result.application?.id?.slice(0, 8) || 'Generated'}`,
           coverLetter: '',
           resumeFile: null,
         });
-        
         // Reset file input
         const fileInput = document.getElementById('resume') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
-        
-        // Clear completion toast flag for next use
-        sessionStorage.removeItem('form-completion-toast');
-        
       } else {
-        const errorData = await response.json();
         setSubmitStatus('error');
-        
-        // Detailed error handling
-        let errorMessage = 'Failed to submit application';
-        if (errorData.error === 'You have already submitted a general application') {
-          errorMessage = 'You have already submitted an application. Please wait for our response or contact us directly.';
-        } else if (errorData.error === 'Missing required fields') {
-          errorMessage = 'Please fill in all required fields and try again.';
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (errorData.details) {
-          errorMessage = `Server error: ${errorData.details}`;
-        }
-        
-        toast.error(`❌ ${errorMessage}`, {
-          autoClose: 6000,
-        });
-        
-        console.error('Server error:', errorData);
       }
     } catch (err) {
       console.error('Error submitting application:', err);
       setSubmitStatus('error');
-      
-      // Network or unexpected error
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      toast.error(
-        `🚫 Network Error: Unable to submit application. 
-
-Please check your internet connection and try again. If the problem persists, contact us directly.
-
-Error: ${errorMessage}`,
-        {
-          autoClose: 8000,
-        }
-      );
     }
   };
 
   const scrollToForm = (positionPrefill?: string) => {
     if (positionPrefill) {
       setFormData((prev) => ({ ...prev, position: positionPrefill }));
-      toast.info(`📝 Application form opened for "${positionPrefill}". Please fill out the details below.`);
-    } else {
-      toast.info('📝 Please fill out the application form below to apply for any position.');
     }
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -727,24 +607,19 @@ Error: ${errorMessage}`,
 
               <div>
                 <label htmlFor="resume" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Resume/CV <span className="text-gray-500">(PDF only - Max 5MB)</span>
+                  Resume/CV <span className="text-gray-500">(PDF, DOC, DOCX - Max 5MB)</span>
                 </label>
                 <input
                   id="resume"
                   name="resume"
                   type="file"
                   onChange={handleFileChange}
-                  accept=".pdf"
+                  accept=".pdf,.doc,.docx"
                   className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#06477f] file:text-white hover:file:bg-[#0056b3] transition-colors ${
                     formErrors.resumeFile ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
                 {formErrors.resumeFile && <p className="mt-1 text-sm text-red-500">{formErrors.resumeFile}</p>}
-                {formData.resumeFile && (
-                  <p className="mt-2 text-sm text-green-600 dark:text-green-400">
-                    ✓ Selected: {formData.resumeFile.name}
-                  </p>
-                )}
               </div>
 
               <div>

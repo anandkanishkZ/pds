@@ -15,6 +15,7 @@ import {
   User,
   Crown,
   ShieldCheck,
+  Briefcase,
 } from "lucide-react";
 // Removed framer-motion to avoid extra dependency; using CSS transitions instead
 
@@ -124,13 +125,12 @@ export default function AdminLayout() {
       { to: "/admin/users", label: "Users", icon: Users },
       { to: "/admin/products", label: "Products", icon: Package },
       { to: "/admin/inquiries", label: "Inquiries", icon: Mail },
-  { to: "/admin/dealership-inquiries", label: "Dealership Inquiries", icon: Mail },
+      { to: "/admin/careers", label: "Careers", icon: Briefcase },
+      { to: "/admin/dealership-inquiries", label: "Dealership Inquiries", icon: Mail },
       { to: "/admin/settings", label: "Settings", icon: Settings },
     ],
     []
   );
-
-
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">

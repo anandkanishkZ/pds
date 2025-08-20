@@ -10,6 +10,11 @@ import ProductPackSizeModel from './productPackSize.js';
 import ProductMediaModel from './productMedia.js';
 import InquiryModel from './inquiry.js';
 import DealershipInquiryModel from './dealershipInquiry.js';
+import GalleryModel from './gallery.js';
+import JobPostingModel from './jobPosting.js';
+import JobApplicationModel from './jobApplication.js';
+import InterviewModel from './interview.js';
+import ApplicationTimelineModel from './applicationTimeline.js';
 
 export const sequelize = new Sequelize(config.db.name, config.db.user, config.db.pass, {
   host: config.db.host,
@@ -29,6 +34,11 @@ export const ProductPackSize = ProductPackSizeModel(sequelize);
 export const ProductMedia = ProductMediaModel(sequelize);
 export const Inquiry = InquiryModel(sequelize);
 export const DealershipInquiry = DealershipInquiryModel(sequelize);
+export const Gallery = GalleryModel(sequelize);
+export const JobPosting = JobPostingModel(sequelize);
+export const JobApplication = JobApplicationModel(sequelize);
+export const Interview = InterviewModel(sequelize);
+export const ApplicationTimeline = ApplicationTimelineModel(sequelize);
 
 // Associations
 UserBlockAudit.belongsTo(User, { foreignKey: 'actingUserId', as: 'actor' });
@@ -45,6 +55,18 @@ ProductFeature.belongsTo(Product, { foreignKey: 'productId' });
 ProductApplication.belongsTo(Product, { foreignKey: 'productId' });
 ProductPackSize.belongsTo(Product, { foreignKey: 'productId' });
 ProductMedia.belongsTo(Product, { foreignKey: 'productId' });
+
+// Career/Job associations
+JobPosting.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+JobPosting.hasMany(JobApplication, { foreignKey: 'jobPostingId', as: 'applications' });
+JobApplication.belongsTo(JobPosting, { foreignKey: 'jobPostingId', as: 'jobPosting' });
+JobApplication.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer' });
+JobApplication.hasMany(Interview, { foreignKey: 'applicationId', as: 'interviews' });
+JobApplication.hasMany(ApplicationTimeline, { foreignKey: 'applicationId', as: 'timeline' });
+Interview.belongsTo(JobApplication, { foreignKey: 'applicationId', as: 'application' });
+Interview.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+ApplicationTimeline.belongsTo(JobApplication, { foreignKey: 'applicationId', as: 'application' });
+ApplicationTimeline.belongsTo(User, { foreignKey: 'performedBy', as: 'performer' });
 
 // Inquiry associations
 Inquiry.belongsTo(User, { foreignKey: 'assignedTo', as: 'assignedUser' });

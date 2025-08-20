@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { X, ZoomIn, Calendar, MapPin, Eye, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { listGalleryItems } from '../lib/api';
 
 interface GalleryItem {
   id: string;
   title: string;
   category: string;
-  image: string;
+  imageUrl: string;
   description: string;
   date: string;
   location: string;
@@ -17,96 +18,43 @@ const Gallery = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimated, setIsAnimated] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsAnimated(true);
+    loadGalleryItems();
   }, []);
 
-  // Sample gallery data - you can replace with your actual images
-  const galleryItems: GalleryItem[] = [
-    {
-      id: '1',
-      title: 'State-of-the-Art Manufacturing Facility',
-      category: 'facility',
-      image: '/images/slider/slide1c.jpg',
-      description: 'Our modern production facility equipped with cutting-edge technology for premium lubricant manufacturing.',
-      date: '2024-12-15',
-      location: 'Kathmandu, Nepal',
-      featured: true
-    },
-    {
-      id: '2',
-      title: 'Quality Control Laboratory',
-      category: 'facility',
-      image: '/images/slider/slide2.jpg',
-      description: 'Advanced testing laboratory ensuring every product meets international quality standards.',
-      date: '2024-12-10',
-      location: 'Kathmandu, Nepal',
-      featured: false
-    },
-    {
-      id: '3',
-      title: 'Premium Engine Oil Products',
-      category: 'products',
-      image: '/images/slider/slide3.jpg',
-      description: 'Our comprehensive range of high-performance engine oils for various automotive applications.',
-      date: '2024-12-05',
-      location: 'Product Showcase',
-      featured: true
-    },
-    {
-      id: '4',
-      title: 'Industrial Lubricants Line',
-      category: 'products',
-      image: '/images/slider/slide4a.jpg',
-      description: 'Heavy-duty industrial lubricants designed for demanding industrial applications.',
-      date: '2024-11-28',
-      location: 'Product Range',
-      featured: false
-    },
-    {
-      id: '5',
-      title: 'Annual Team Meeting',
-      category: 'events',
-      image: '/images/slider/slide5.jpg',
-      description: 'Our dedicated team collaborating to drive innovation in automotive lubricants.',
-      date: '2024-11-20',
-      location: 'Kathmandu, Nepal',
-      featured: true
-    },
-    {
-      id: '6',
-      title: 'Industry Trade Show 2024',
-      category: 'events',
-      image: '/images/slider/sldie6.jpg',
-      description: 'Showcasing our latest products at the international automotive trade exhibition.',
-      date: '2024-11-15',
-      location: 'Exhibition Center',
-      featured: false
-    },
-    {
-      id: '7',
-      title: 'Research & Development Lab',
-      category: 'facility',
-      image: '/images/slider/slide1c.jpg',
-      description: 'Our R&D team working on next-generation lubricant formulations.',
-      date: '2024-11-10',
-      location: 'Kathmandu, Nepal',
-      featured: false
-    },
-    {
-      id: '8',
-      title: 'Customer Appreciation Event',
-      category: 'events',
-      image: '/images/slider/slide2.jpg',
-      description: 'Celebrating our valued customers and business partners at our annual appreciation event.',
-      date: '2024-10-30',
-      location: 'Kathmandu, Nepal',
-      featured: true
+  const loadGalleryItems = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await listGalleryItems({ pageSize: 100 });
+      
+      // Map API response to our interface
+      const items: GalleryItem[] = response.data.map(item => ({
+        id: item.id,
+        title: item.title,
+        category: item.category,
+        imageUrl: item.imageUrl,
+        description: item.description || '',
+        date: item.date,
+        location: item.location || '',
+        featured: item.featured
+      }));
+      
+      setGalleryItems(items);
+    } catch (err) {
+      console.error('Failed to load gallery items:', err);
+      setError('Failed to load gallery items');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const categories = ['all', 'facility', 'products', 'events'];
+  const categories = ['all', 'facility', 'products', 'events', 'achievements'];
   
   const filteredItems = activeFilter === 'all' 
     ? galleryItems 
@@ -140,9 +88,49 @@ const Gallery = () => {
       case 'facility': return 'Facilities';
       case 'products': return 'Products';
       case 'events': return 'Events';
+      case 'achievements': return 'Achievements';
       default: return 'All Categories';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
+        <div className="pt-32 pb-16">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Gallery</h1>
+              <p className="text-lg text-gray-200">Loading our gallery...</p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
+        <div className="pt-32 pb-16">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Gallery</h1>
+            <p className="text-lg text-gray-200 mb-8">{error}</p>
+            <button
+              onClick={loadGalleryItems}
+              className="bg-[#fec216] hover:bg-[#fdb913] text-[#06477f] px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
@@ -190,7 +178,7 @@ const Gallery = () => {
               >
                 <div className="aspect-square">
                   <img
-                    src={item.image}
+                    src={item.imageUrl}
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
@@ -257,7 +245,7 @@ const Gallery = () => {
               >
                 <div className="aspect-[4/3] overflow-hidden">
                   <img
-                    src={item.image}
+                    src={item.imageUrl}
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
@@ -299,6 +287,32 @@ const Gallery = () => {
               </div>
             ))}
           </div>
+
+          {/* Empty State */}
+          {filteredItems.length === 0 && (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 mx-auto mb-6 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <Eye className="w-12 h-12 text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                No gallery items found
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
+                {activeFilter === 'all' 
+                  ? 'No gallery items have been added yet. Check back later for updates.'
+                  : `No ${getCategoryLabel(activeFilter).toLowerCase()} items found. Try selecting a different category.`
+                }
+              </p>
+              {activeFilter !== 'all' && (
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className="bg-[#06477f] hover:bg-[#053961] text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  View All Categories
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -330,7 +344,7 @@ const Gallery = () => {
 
             {/* Image */}
             <img
-              src={selectedImage.image}
+              src={selectedImage.imageUrl}
               alt={selectedImage.title}
               className="w-full h-full object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}

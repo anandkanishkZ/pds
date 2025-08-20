@@ -898,6 +898,219 @@ export async function getInquiryStats(token: string): Promise<InquiryStats> {
 
 // ============ Dealership Inquiries API ============
 
+// ============ Gallery API ============
+
+export type GalleryItem = {
+  id: string;
+  title: string;
+  description?: string;
+  category: 'facility' | 'products' | 'events' | 'achievements';
+  imageUrl: string;
+  date: string;
+  location?: string;
+  featured: boolean;
+  status: 'active' | 'archived';
+  sortOrder: number;
+  seoMeta?: any;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GalleryStats = {
+  totalItems: number;
+  featuredItems: number;
+  activeItems: number;
+  archivedItems: number;
+  categoryStats: {
+    facility?: number;
+    products?: number;
+    events?: number;
+    achievements?: number;
+  };
+};
+
+export type GalleryListResponse = {
+  data: GalleryItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+// Get gallery items (public)
+export async function listGalleryItems(params: {
+  page?: number;
+  pageSize?: number;
+  category?: string;
+  featured?: boolean;
+  q?: string;
+} = {}): Promise<GalleryListResponse> {
+  const searchParams = new URLSearchParams();
+  
+  if (params.page) searchParams.set('page', params.page.toString());
+  if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+  if (params.category) searchParams.set('category', params.category);
+  if (params.featured !== undefined) searchParams.set('featured', params.featured.toString());
+  if (params.q) searchParams.set('q', params.q);
+
+  const res = await fetch(`${API_BASE}/api/gallery?${searchParams}`);
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch gallery items');
+  }
+
+  return res.json();
+}
+
+// Get gallery statistics (admin only)
+export async function getGalleryStats(token: string): Promise<GalleryStats> {
+  const res = await fetch(`${API_BASE}/api/gallery/stats`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch gallery statistics');
+  }
+
+  return res.json();
+}
+
+// Get all gallery items for admin (including archived)
+export async function listAdminGalleryItems(token: string, params: {
+  page?: number;
+  pageSize?: number;
+  category?: string;
+  status?: string;
+  featured?: boolean;
+  q?: string;
+} = {}): Promise<GalleryListResponse> {
+  const searchParams = new URLSearchParams();
+  
+  if (params.page) searchParams.set('page', params.page.toString());
+  if (params.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+  if (params.category) searchParams.set('category', params.category);
+  if (params.status) searchParams.set('status', params.status);
+  if (params.featured !== undefined) searchParams.set('featured', params.featured.toString());
+  if (params.q) searchParams.set('q', params.q);
+
+  const res = await fetch(`${API_BASE}/api/gallery/admin?${searchParams}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch admin gallery items');
+  }
+
+  return res.json();
+}
+
+// Get single gallery item
+export async function getGalleryItem(id: string): Promise<GalleryItem> {
+  const res = await fetch(`${API_BASE}/api/gallery/${id}`);
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to fetch gallery item');
+  }
+
+  return res.json();
+}
+
+// Create gallery item (admin only)
+export async function createGalleryItem(token: string, data: {
+  title: string;
+  description?: string;
+  category: string;
+  imageUrl: string;
+  date?: string;
+  location?: string;
+  featured?: boolean;
+  status?: string;
+  sortOrder?: number;
+}): Promise<GalleryItem> {
+  const res = await fetch(`${API_BASE}/api/gallery`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!res.ok) {
+    const responseData = await res.json().catch(() => ({}));
+    throw new Error(responseData.message || 'Failed to create gallery item');
+  }
+
+  return res.json();
+}
+
+// Update gallery item (admin only)
+export async function updateGalleryItem(token: string, id: string, data: Partial<{
+  title: string;
+  description: string;
+  category: string;
+  imageUrl: string;
+  date: string;
+  location: string;
+  featured: boolean;
+  status: string;
+  sortOrder: number;
+}>): Promise<GalleryItem> {
+  const res = await fetch(`${API_BASE}/api/gallery/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!res.ok) {
+    const responseData = await res.json().catch(() => ({}));
+    throw new Error(responseData.message || 'Failed to update gallery item');
+  }
+
+  return res.json();
+}
+
+// Delete gallery item (admin only)
+export async function deleteGalleryItem(token: string, id: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/gallery/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to delete gallery item');
+  }
+
+  return res.json();
+}
+
+// Reorder gallery items (admin only)
+export async function reorderGalleryItems(token: string, items: { id: string }[]): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/gallery/reorder`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ items })
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to reorder gallery items');
+  }
+
+  return res.json();
+}
+
 
 
 

@@ -16,6 +16,8 @@ import productsRoutes from './routes/products.js';
 import mediaRoutes from './routes/media.js';
 import inquiriesRoutes from './routes/inquiries.js';
 import dealershipInquiriesRoutes from './routes/dealershipInquiries.js';
+import galleryRoutes from './routes/gallery.js';
+import careersRoutes from './routes/careers.js';
 
 dotenv.config();
 
@@ -95,6 +97,8 @@ app.use('/api/media', uploadLimiter, mediaRoutes);
 // Applying contactLimiter globally caused 429 for authenticated admin GET listing & stats.
 app.use('/api/inquiries', inquiriesRoutes);
 app.use('/api/dealership-inquiries', dealershipInquiriesRoutes);
+app.use('/api/gallery', apiLimiter, galleryRoutes);
+app.use('/api/careers', careersRoutes);
 
 // Global error handler - must be last middleware
 app.use((err, req, res, next) => {

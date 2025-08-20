@@ -27,6 +27,10 @@ import AdminCategoriesPage from './pages/admin/Categories';
 import MediaLibrary from './pages/admin/MediaLibrary';
 import AdminInquiriesPage from './pages/admin/Inquiries';
 import AdminDealershipInquiriesPage from './pages/admin/DealershipInquiries';
+import AdminGalleryPage from './pages/admin/Gallery';
+import AdminCareersPage from './pages/admin/Careers';
+import CareerApplications from './pages/admin/CareerApplications';
+import AdminJobForm from './pages/admin/CareerJobForm';
 
 import { useEffect } from 'react';
 
@@ -58,8 +62,13 @@ function App() {
             <Route path="products/:productSlug/edit" element={<AdminEditProductPage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />
             <Route path="media" element={<MediaLibrary />} />
+            <Route path="gallery" element={<AdminGalleryPage />} />
             <Route path="inquiries" element={<AdminInquiriesPage />} />
             <Route path="dealership-inquiries" element={<AdminDealershipInquiriesPage />} />
+            <Route path="careers" element={<AdminCareersPage />} />
+            <Route path="careers/applications" element={<CareerApplications />} />
+            <Route path="careers/new" element={<AdminJobForm />} />
+            <Route path="careers/edit/:id" element={<AdminJobForm />} />
             <Route path="settings" element={<Settings />} />
             {/* Future nested routes: products, inquiries */}
           </Route>
