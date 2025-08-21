@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Award, Beaker, Shield, Loader2 } from 'lucide-react';
+import { ArrowRight, Award, Beaker, Shield } from 'lucide-react';
 import BackToTop from '../components/BackToTop';
 import { useEffect, useState } from 'react';
 import { fetchPublicCategories, type ProductCategory } from '../lib/api';
@@ -47,7 +47,31 @@ const Products = () => {
       <section className="py-20 bg-gray-50 dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {loading && <div className="col-span-full flex items-center justify-center py-20 text-slate-500"><Loader2 className="h-6 w-6 animate-spin"/></div>}
+            {loading && !error && (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm w-full max-w-sm mx-auto flex flex-col overflow-hidden animate-pulse"
+                  style={{ width: '18rem' }}
+                  aria-busy="true"
+                >
+                  {/* Image skeleton */}
+                  <div className="relative w-full h-44 bg-gray-100 dark:bg-gray-700" />
+                  {/* Body skeleton */}
+                  <div className="p-5 flex flex-col flex-1">
+                    <div className="h-5 w-2/3 bg-gray-200 dark:bg-gray-600 rounded mb-3" />
+                    <div className="space-y-2 mb-4">
+                      <div className="h-4 w-full bg-gray-200 dark:bg-gray-600 rounded" />
+                      <div className="h-4 w-5/6 bg-gray-200 dark:bg-gray-600 rounded" />
+                      <div className="h-4 w-4/6 bg-gray-200 dark:bg-gray-600 rounded" />
+                    </div>
+                    <div className="mt-auto">
+                      <div className="h-9 w-28 bg-gray-200 dark:bg-gray-600 rounded-md" />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
             {error && <div className="col-span-full text-center py-20 text-rose-600">{error}</div>}
             {!loading && !error && categories.map((category) => (
               <div
